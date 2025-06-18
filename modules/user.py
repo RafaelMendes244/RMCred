@@ -2,6 +2,22 @@ import sqlite3
 import hashlib
 from datetime import datetime, timedelta
 
+def create_amigos_table():
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS amigos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        solicitante TEXT NOT NULL,
+        amigo TEXT NOT NULL,
+        status TEXT DEFAULT 'pendente',
+        FOREIGN KEY (solicitante) REFERENCES usuarios(nome),
+        FOREIGN KEY (amigo) REFERENCES usuarios(nome)
+    )
+    ''')
+    conn.commit()
+    conn.close()
+
 def create_user_table():
     conn = sqlite3.connect('database/finflow.db')
     cursor = conn.cursor()
