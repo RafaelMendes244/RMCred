@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% block title %}Editar Perfil{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="header-actions mb-4" style="margin-bottom: 30px;">
+        <a href="{{ url_for('painel' if session.get('tipo') == 'emprestador' else 'painel_solicitante') }}" 
+        class="btn-voltar">
+            <i class="fas fa-arrow-left"></i> Voltar ao painel
+        </a>
+    </div>
+
+    <div class="dashboard-container">
+        {% if tem_emprestimos_pendentes %}
+        <div class="alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                <strong>ATENÇÃO!</strong> Você possui empréstimos ativos ou pendentes.<br>
+                <strong>Não é possível alterar seu nome</strong> enquanto houver transações em andamento.
+                <a href="{{ url_for('emprestimos_aprovados') }}" style="color: #d9480f; text-decoration: underline;">
+                    Ver meus empréstimos
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <h2 class="section-title"><i class="fas fa-user-edit"></i> Editar Perfil</h2>
+    
+        <div class="profile-edit-card">
+            <form method="POST" class="profile-form">
+                <div class="form-group">
+                    <label for="nome">Nome Completo</label>
+                    <input type="text" id="nome" name="nome" value="{{ dados[0] }}" 
+                    {% if tem_emprestimos_pendentes %}readonly style="background-color: #f8f9fa; cursor: not-allowed;"{% endif %}>
+                    {% if tem_emprestimos_pendentes %}
+                    <small class="warning-text">
+                        <i class="fas fa-lock"></i> Campo bloqueado devido a empréstimos pendentes
+                    </small>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="celular">Celular</label>
+                    <input type="text" class="form-control" name="celular" value="{{ dados[2] if dados[2] else '' }}" placeholder="(00) 00000-0000">
+                </div>
+                
+                <div class="form-group">
+                    <label for="endereco">Endereço</label>
+                    <input type="text" class="form-control" name="endereco" value="{{ dados[3] if dados[3] else '' }}" placeholder="Rua, Número - Bairro">
+                </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Salvar alterações
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if ({{ tem_emprestimos_pendentes|tojson|safe }} && 
+            document.getElementById('nome').value !== "{{ dados[0] }}") {
+            if (!confirm('Você tem empréstimos pendentes. Tem certeza que deseja alterar seu nome?')) {
+                e.preventDefault();
+            }
+        }
+    });
+</script>
+
+<style>
+    .profile-edit-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        padding: 25px;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus {
+        border-color: #2a7de1;
+        box-shadow: 0 0 0 3px rgba(42, 125, 225, 0.2);
+        outline: none;
+    }
+    
+    .form-actions {
+        margin-top: 30px;
+        text-align: right;
+    }
+    
+    .btn-primary {
+        background-color: #2a7de1;
+        border: none;
+        padding: 12px 25px;
+        font-size: 16px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-primary:hover {
+        background-color: #1a6dcc;
+        transform: translateY(-2px);
+    }
+
+    .btn-voltar {
+        background: #6c757d;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+    
+    .btn-voltar:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    .alert-warning {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        border-radius: 4px;
+        margin-top: 10px;
+        margin-bottom: 30px; /* Aumentei um pouco para dar mais respiro */
+        display: flex;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        color: #856404;
+    }    
+    
+    .alert-warning i {
+        color: #ffc107;
+        font-size: 20px;
+    }
+    
+    .alert-warning strong {
+        font-weight: 600;
+    }
+
+    /* Adicione isso ao seu CSS existente */
+    input[readonly] {
+        background-color: #f8f9fa !important;
+        border-color: #e9ecef !important;
+        color: #6c757d !important;
+        cursor: not-allowed !important;
+    }
+    
+    .warning-text i.fa-lock {
+        color: #dc3545;
+        margin-right: 5px;
+    }
+
+    /* Adicione ao seu style.css */
+.flash-messages {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.flash-message {
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    animation: slideIn 0.5s forwards;
+}
+
+.flash-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-left: 4px solid #dc3545;
+}
+
+.flash-message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border-left: 4px solid #28a745;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+</style>
+{% endblock %}

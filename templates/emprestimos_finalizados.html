@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMCred - Empréstimos Finalizados</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #28a745;
+            --danger-color: #dc3545;
+            --light-gray: #f2f6fa;
+            --dark-gray: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--light-gray);
+            padding: 30px;
+            color: var(--dark-gray);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            font-size: 28px;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: var(--primary-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background-color: #f5faff;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(220, 53, 69, 0.3);
+        }
+
+        .btn-voltar {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            text-decoration: none;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-voltar:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+            text-decoration: none;
+        }
+
+        .status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .status-finalizado {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .obs-cell {
+            max-width: 250px;
+            word-break: break-word;
+        }
+
+        .acoes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 120px;
+        }
+
+        .sem-registros {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            .acoes-container {
+                flex-direction: row;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-actions">
+            <a href="{{ url_for('painel') }}" class="btn-voltar">
+                <i class="fas fa-arrow-left"></i> Voltar ao painel
+            </a>
+        </div>
+        <h2><i class="fas fa-check-circle"></i> Empréstimos Finalizados</h2>
+
+        {% if emprestimos %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Valor</th>
+                    <th>Juros</th>
+                    <th>Prazo</th>
+                    <th>Total</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th>Observações</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in emprestimos %}
+                <tr>
+                    <td>{{ emp['cliente'] }}</td>
+                    <td>R$ {{ "%.2f"|format(emp['valor']) }}</td>
+                    <td>{{ emp['juros'] }}%</td>
+                    <td>{{ emp['dias'] }} dias</td>
+                    <td>R$ {{ "%.2f"|format(emp['total']) }}</td>
+                    <td>{{ emp['vencimento'][:10] if emp['vencimento'] else '-' }}</td>
+                    <td>
+                        <span class="status status-finalizado">
+                            Quitado <i class="fas fa-check"></i>
+                        </span>
+                    </td>
+                    <td class="obs-cell">
+                        <details>
+                            <summary>{{ (emp['observacoes'] or 'Sem observações')|truncate(20) }}</summary>
+                            <p style="margin-top: 8px;">{{ emp['observacoes'] or 'Nenhuma observação adicional' }}</p>
+                        </details>
+                    </td>
+                    <td>
+                        <div class="acoes-container">
+                            <a href="#" onclick="confirmarExclusao({{ emp['id'] }})" class="btn btn-danger">
+                                <i class="fas fa-trash-alt"></i> Excluir
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="sem-registros">
+            <i class="fas fa-check-circle" style="font-size: 50px; opacity: 0.5;"></i>
+            <h3>Nenhum empréstimo finalizado</h3>
+            <p>Não há empréstimos finalizados no momento.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+    function confirmarExclusao(id) {
+        if (confirm("Tem certeza que deseja excluir permanentemente este registro?\nEsta ação não pode ser desfeita.")) {
+            window.location.href = "/deletar/" + id;
+        }
+    }
+    </script>
+</body>
+</html>

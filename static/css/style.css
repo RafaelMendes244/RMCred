@@ -1,0 +1,247 @@
+/* Reset e Estilos Globais */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+}
+
+body {
+    background: #f5f7fa;
+    color: #333;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+.container {
+    max-width: 600px;
+    margin: 30px auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 25px;
+    position: relative;
+}
+
+/* Cabeçalho */
+.header-actions {
+    position: absolute;
+    top: 20px;
+    right: 25px;
+}
+
+h1, h2 {
+    color: #2a7de1;
+    margin: 10px 0;
+    text-align: center;
+}
+
+h1 {
+    font-size: 28px;
+    margin-top: 40px;
+}
+
+h2 {
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 30px;
+}
+
+/* Formulário */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #444;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: #2a7de1;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(42, 125, 225, 0.1);
+}
+
+.form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* Botões */
+.btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+/* BOTÃO PRIMÁRIO (AZUL) */
+.btn-primary {
+    background-color: #2a7de1;
+    color: white;
+    border: 1px solid #1a6bc8;
+}
+
+.btn-primary:hover {
+    background-color: #1a6bc8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(42, 125, 225, 0.3);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    opacity: 0.9;
+}
+
+button[type="submit"] {
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* Resultados */
+.result-container {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #2a7de1;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.result-details {
+    margin: 15px 0;
+}
+
+.result-details p {
+    margin: 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.result-details strong {
+    font-weight: 600;
+    color: #555;
+    min-width: 160px;
+    display: inline-block;
+}
+
+/* Ações */
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+/* Loading */
+.loading {
+    display: none;
+    text-align: center;
+    margin: 20px 0;
+    padding: 20px;
+}
+
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #2a7de1;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+    .container {
+        padding: 20px;
+        margin: 15px auto;
+    }
+    
+    .header-actions {
+        position: static;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    
+    h1 {
+        margin-top: 0;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+
+/* Estilização para mensagens flash */
+.alert {
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.alert-info {
+    background-color: #e7f5ff;
+    color: #1864ab;
+    border-left: 4px solid #4dabf7;
+}
+
+.alert-success {
+    background-color: #ebfbee;
+    color: #2b8a3e;
+    border-left: 4px solid #40c057;
+}
+
+.alert i {
+    font-size: 20px;
+}

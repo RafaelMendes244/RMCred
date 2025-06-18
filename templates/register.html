@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <title>Cadastro - RMCred</title>
+    <style>
+        :root {
+            --primary: #2a7de1;
+            --primary-dark: #1a6bc8;
+            --secondary: #6c757d;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --gray: #6c757d;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: var(--dark);
+        }
+        
+        .register-container {
+            background-color: white;
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.6s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .logo {
+            color: var(--primary);
+            font-size: 32px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .subtitle {
+            color: var(--gray);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e9ecef;
+            z-index: 1;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .step.active .step-number {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .step.completed .step-number {
+            background: var(--success);
+            color: white;
+        }
+        
+        .step-text {
+            font-size: 12px;
+            color: var(--gray);
+        }
+        
+        .step.active .step-text {
+            color: var(--primary);
+            font-weight: 500;
+        }
+        
+        .form-step {
+            display: none;
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.4s ease;
+        }
+        
+        .form-step.active {
+            display: block;
+            opacity: 1;
+            transform: translateX(0);
+            animation: none;
+        }
+        
+        .form-group {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-weight: 500;
+            text-align: left;
+        }
+        
+        .form-group label.required::after {
+            content: ' *';
+            color: var(--danger);
+        }
+        
+        .form-control {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(42, 125, 225, 0.1);
+        }
+        
+        .input-with-icon {
+            position: relative;
+            width: 100%;
+        }
+        
+        .input-with-icon i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+        
+        .input-with-icon input {
+            padding-left: 40px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        
+        .btn-outline:hover {
+            background: rgba(42, 125, 225, 0.1);
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            color: var(--danger);
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .login-link {
+            text-align: center;
+            margin-top: 25px;
+            color: var(--secondary);
+        }
+        
+        .login-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .password-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .password-strength {
+            margin-top: 5px;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+        
+        .password-hints {
+            margin-top: 5px;
+            font-size: 13px;
+            color: var(--gray);
+        }
+        
+        .password-hints ul {
+            padding-left: 20px;
+            margin: 5px 0 0;
+        }
+        
+        .password-hints li {
+            margin-bottom: 3px;
+        }
+        
+        .password-hints li.valid {
+            color: var(--success);
+        }
+        
+        .password-hints li.valid::before {
+            content: '✓ ';
+        }
+        
+        .form-footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+        }
+        
+        .form-control.invalid {
+            border-color: var(--danger) !important;
+        }
+        .form-control.valid {
+            border-color: var(--success) !important;
+        }
+        
+        @media (max-width: 576px) {
+            .register-container {
+                padding: 30px 20px;
+            }
+            
+            .logo {
+                font-size: 28px;
+            }
+            
+            .form-footer {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                margin-top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="logo">
+            <i class="fas fa-hand-holding-usd"></i>
+            <span>RMCred</span>
+        </div>
+        <div class="subtitle">Crie sua conta e comece a usar nossos serviços</div>
+        
+        <!-- Progress Steps -->
+        <div class="progress-steps">
+            <div class="step active" id="step1-indicator">
+                <div class="step-number">1</div>
+                <div class="step-text">Informações Básicas</div>
+            </div>
+            <div class="step" id="step2-indicator">
+                <div class="step-number">2</div>
+                <div class="step-text">Tipo de Usuário</div>
+            </div>
+            <div class="step" id="step3-indicator">
+                <div class="step-number">3</div>
+                <div class="step-text">Finalizar</div>
+            </div>
+        </div>
+        
+        {% if erro %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i> {{ erro }}
+        </div>
+        {% endif %}
+        
+        {% if mensagem %}
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> {{ mensagem }}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/register" id="registerForm">
+            <!-- Step 1: Basic Info -->
+            <div class="form-step active" id="step1">
+                <div class="form-group">
+                    <label for="nome" class="required">Nome completo</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="nome" name="nome" class="form-control" placeholder="Seu nome completo" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="required">E-mail</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" name="email" class="form-control" placeholder="seu@email.com" required>
+                    </div>
+                    <small id="email-error" style="color: var(--danger); display: none;"></small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="required">Senha</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" class="form-control" placeholder="Crie uma senha segura" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('password')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength">
+                        <div class="strength-bar" id="strength-bar"></div>
+                    </div>
+                    <div class="password-hints">
+                        <ul>
+                            <li id="length-hint">Mínimo 8 caracteres</li>
+                            <li id="uppercase-hint">Pelo menos 1 letra maiúscula</li>
+                            <li id="number-hint">Pelo menos 1 número</li>
+                            <li id="special-hint">Pelo menos 1 caractere especial</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password" class="required">Confirmar Senha</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="Digite a senha novamente" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('confirm_password')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <small id="password-match" style="color: var(--danger); display: none;"></small>
+                </div>
+                
+                <div class="form-footer">
+                    <button type="button" class="btn btn-outline" onclick="nextStep(2)">
+                        Próximo <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 2: User Type -->
+            <div class="form-step" id="step2">
+                <div class="form-group">
+                    <label for="tipo" class="required">Tipo de usuário</label>
+                    <select id="tipo" name="tipo" class="form-control" required>
+                        <option value="" disabled selected>Selecione um tipo</option>
+                        <option value="emprestador">Emprestador</option>
+                        <option value="solicitante">Solicitante</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="celular-group">
+                    <label for="celular" class="required">Celular</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-phone"></i>
+                        <input type="text" id="celular" name="celular" class="form-control" placeholder="(00) 00000-0000" required>
+                    </div>
+                </div>
+                
+                <div id="extras-solicitante" style="display: none;">
+                    <!-- Endereço -->
+                    <div class="form-group" id="endereco-group">
+                        <label for="endereco" class="required">Endereço</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <input type="text" id="endereco" name="endereco" class="form-control" placeholder="Seu endereço completo" required>
+                        </div>
+                    </div>
+                
+                    <!-- CPF -->
+                    <div class="form-group" id="cpf-group">
+                        <label for="cpf" class="required">CPF</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-id-card"></i>
+                            <input type="text" id="cpf" name="cpf" class="form-control" placeholder="000.000.000-00" required>
+                        </div>
+                    </div>
+                
+                    <!-- Data de Nascimento -->
+                    <div class="form-group" id="data-nascimento-group">
+                        <label for="data_nascimento" class="required">Data de Nascimento</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                            <input type="date" id="data_nascimento" name="data_nascimento" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-footer">
+                    <button type="button" class="btn btn-outline" onclick="prevStep()">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+                        Próximo <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 3: Review and Submit -->
+            <div class="form-step" id="step3">
+                <div class="form-group">
+                    <h3 style="text-align: center; margin-bottom: 20px;">Revise seus dados</h3>
+                    <div id="review-data" style="background: #f8f9fa; padding: 15px; border-radius: 8px;"></div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 20px;">
+                    <label style="display: flex; align-items: center;">
+                        <input type="checkbox" id="terms" name="terms" required style="margin-right: 10px;">
+                        Concordo com os <a href="#" style="color: var(--primary);">Termos de Uso</a> e <a href="#" style="color: var(--primary);">Política de Privacidade</a>
+                    </label>
+                </div>
+                
+                <div class="form-footer">
+                    <button type="button" class="btn btn-outline" onclick="prevStep()">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i> Finalizar Cadastro
+                    </button>
+                </div>
+            </div>
+        </form>
+        
+        <div class="login-link">
+            Já tem uma conta? <a href="/login">Faça login aqui</a>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    <script>
+        // Controle dos passos do formulário
+        let currentStep = 1;
+        
+        function showStep(step) {
+            $('.form-step').removeClass('active');
+            $(`#step${step}`).addClass('active');
+            
+            // Atualiza indicadores de progresso
+            $('.step').removeClass('active completed');
+            $(`#step${step}-indicator`).addClass('active');
+            
+            for (let i = 1; i < step; i++) {
+                $(`#step${i}-indicator`).addClass('completed');
+            }
+            
+            // Rola para o topo do formulário
+            $('html, body').animate({
+                scrollTop: $('.register-container').offset().top - 20
+            }, 300);
+        }
+        
+        function nextStep(step) {
+            if (validateStep(currentStep)) {
+                currentStep = step;
+                if (step === 3) {
+                    updateReviewData();
+                }
+                showStep(step);
+            }
+        }
+        
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        }
+        
+        // Função para atualizar a força da senha e dicas visuais
+        function updatePasswordStrength(password) {
+            // Atualiza as dicas visuais (✓ verde quando válido)
+            $('#length-hint').toggleClass('valid', password.length >= 8);
+            $('#uppercase-hint').toggleClass('valid', /[A-Z]/.test(password));
+            $('#number-hint').toggleClass('valid', /[0-9]/.test(password));
+            $('#special-hint').toggleClass('valid', /[^A-Za-z0-9]/.test(password));
+            
+            // Calcula a força (0-4 critérios atendidos)
+            const strength = [
+                password.length >= 8,
+                /[A-Z]/.test(password),
+                /[0-9]/.test(password),
+                /[^A-Za-z0-9]/.test(password)
+            ].filter(Boolean).length;
+        
+            // Atualiza a barra de progresso
+            const percent = (strength / 4) * 100;
+            $('#strength-bar')
+                .css('width', percent + '%')
+                .css('background', 
+                    strength <= 1 ? '#dc3545' :  // Vermelho (fraca)
+                    strength <= 2 ? '#ffc107' :  // Amarelo (média)
+                    '#28a745');                  // Verde (forte)
+        }
+
+        // Função para validar a senha
+        function validatePassword() {
+            const password = $('#password').val();
+            let isValid = true;
+
+            if (password.length < 8) {
+                $('#password').addClass('invalid');
+                isValid = false;
+            } 
+            else if (!/[A-Z]/.test(password)) {
+                $('#password').addClass('invalid');
+                isValid = false;
+            } 
+            else if (!/[0-9]/.test(password)) {
+                $('#password').addClass('invalid');
+                isValid = false;
+            } 
+            else {
+                $('#password').removeClass('invalid').addClass('valid');
+            }
+
+            return isValid;
+        }
+
+        // Validação de cada passo
+        function validateStep(step) {
+            let isValid = true;
+            
+            if (step === 1) {
+                // Validação do nome
+                const nome = $('#nome').val().trim();
+                if (!nome) {
+                    $('#nome').addClass('invalid');
+                    isValid = false;
+                } else {
+                    $('#nome').removeClass('invalid').addClass('valid');
+                }
+        
+                // Validação do email
+                const email = $('#email').val().trim();
+                if (!email || !validateEmail(email)) {
+                    $('#email').addClass('invalid');
+                    $('#email-error').text('Por favor, insira um e-mail válido').show();
+                    isValid = false;
+                } else if ($('#email-error').is(':visible') && $('#email-error').text().includes('já está cadastrado')) {
+                    isValid = false;
+                } else {
+                    $('#email').removeClass('invalid').addClass('valid');
+                    $('#email-error').hide();
+                }
+                
+                // Validação da senha
+                if (!validatePassword()) {
+                    isValid = false;
+                }
+
+                // Validação de confirmação de senha
+                const confirmPassword = $('#confirm_password').val();
+                if (!confirmPassword || $('#password').val() !== confirmPassword) {
+                    $('#confirm_password').addClass('invalid');
+                    $('#password-match').text('As senhas não coincidem').show();
+                    isValid = false;
+                } else {
+                    $('#confirm_password').removeClass('invalid').addClass('valid');
+                }
+            }
+            
+            if (step === 2) {
+                const tipo = $('#tipo').val();
+                if (!tipo) {
+                    $('#tipo').addClass('invalid');
+                    isValid = false;
+                } else {
+                    $('#tipo').removeClass('invalid').addClass('valid');
+                    
+                    // Validação do celular (obrigatório para ambos)
+                    const celular = $('#celular').val().replace(/\D/g, '');
+                    if (!celular || celular.length !== 11) {
+                        $('#celular').addClass('invalid');
+                        isValid = false;
+                    } else {
+                        $('#celular').removeClass('invalid').addClass('valid');
+                    }
+                    
+                    // Validação adicional para solicitante
+                    if (tipo === 'solicitante') {
+                        const endereco = $('#endereco').val().trim();
+                        const cpf = $('#cpf').val().replace(/\D/g, '');
+                        const dataNascimento = $('#data_nascimento').val();
+                        
+                        if (!endereco) {
+                            $('#endereco').addClass('invalid');
+                            isValid = false;
+                        } else {
+                            $('#endereco').removeClass('invalid').addClass('valid');
+                        }
+                        
+                        if (!cpf || cpf.length !== 11) {
+                            $('#cpf').addClass('invalid');
+                            isValid = false;
+                        } else {
+                            $('#cpf').removeClass('invalid').addClass('valid');
+                        }
+                        
+                        if (!dataNascimento) {
+                            $('#data_nascimento').addClass('invalid');
+                            isValid = false;
+                        } else {
+                            $('#data_nascimento').removeClass('invalid').addClass('valid');
+                        }
+                    }
+                }
+            }
+            
+            if (step === 3) {
+                if (!$('#terms').is(':checked')) {
+                    $('#terms').parent().css('color', 'var(--danger)');
+                    isValid = false;
+                } else {
+                    $('#terms').parent().css('color', '');
+                }
+            }
+            
+            return isValid;
+        }
+    
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(String(email).toLowerCase());
+        }
+    
+        // Máscaras para os campos
+        $(document).ready(function() {
+            $('#celular').mask('(00) 00000-0000');
+            $('#cpf').mask('000.000.000-00');
+            
+            // Verificação de email em tempo real
+            $('#email').on('blur', function() {
+                const email = $(this).val().trim();
+                if (email && validateEmail(email)) {
+                    $.ajax({
+                        url: '/check_email',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({email: email}),
+                        success: function(response) {
+                            if (response.exists) {
+                                $('#email-error').text('Este e-mail já está cadastrado').show();
+                                $('#email').addClass('invalid');
+                            } else {
+                                $('#email-error').hide();
+                                $('#email').removeClass('invalid').addClass('valid');
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // Mostrar campos adicionais para solicitantes
+            $('#tipo').change(function () {
+                const tipo = $(this).val();
+                if (tipo === 'solicitante') {
+                    $('#extras-solicitante').slideDown();
+                    $('#endereco, #cpf, #data_nascimento').attr('required', true);
+                } else if (tipo === 'emprestador') {
+                    $('#extras-solicitante').slideUp();
+                    $('#endereco, #cpf, #data_nascimento').removeAttr('required');
+                }
+            });
+
+            // Validação em tempo real da senha
+            $('#password').on('input', function() {
+                const password = $(this).val();
+                updatePasswordStrength(password);
+                validatePassword();
+            });
+        });
+    
+        function updateReviewData() {
+            const nome = $('#nome').val();
+            const email = $('#email').val();
+            const tipo = $('#tipo').val();
+            const celular = $('#celular').val();
+            const endereco = $('#endereco').val();
+            const cpf = $('#cpf').val();
+            const nascimento = $('#data_nascimento').val();
+        
+            let html = `
+                <p><strong>Nome:</strong> ${nome}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Tipo de usuário:</strong> ${tipo === 'emprestador' ? 'Emprestador' : 'Solicitante'}</p>
+                <p><strong>Celular:</strong> ${celular}</p>
+            `;
+        
+            if (tipo === 'solicitante') {
+                html += `
+                    <p><strong>Endereço:</strong> ${endereco}</p>
+                    <p><strong>CPF:</strong> ${cpf}</p>
+                    <p><strong>Data de Nascimento:</strong> ${nascimento}</p>
+                `;
+            }
+        
+            $('#review-data').html(html);
+        }        
+        
+        // Validação de confirmação de senha em tempo real
+        $('#confirm_password').on('input', function() {
+            const password = $('#password').val();
+            const confirmPassword = $(this).val();
+            
+            if (confirmPassword && password !== confirmPassword) {
+                $(this).addClass('invalid');
+                $('#password-match').text('As senhas não coincidem').show();
+            } else if (confirmPassword) {
+                $(this).removeClass('invalid').addClass('valid');
+                $('#password-match').hide();
+            }
+        });
+        
+        // Validação no submit
+        $('#registerForm').submit(function(e) {
+            if (!validateStep(currentStep)) {
+                e.preventDefault();
+                return false;
+            }
+            
+            if (!$('#terms').is(':checked')) {
+                e.preventDefault();
+                alert('Por favor, aceite os Termos de Uso e Política de Privacidade');
+                return false;
+            }
+            
+            // Mostrar loading
+            setLoading(true);
+        });
+        
+        // Loading state
+        function setLoading(state) {
+            const btn = $('.btn-primary[type="submit"]');
+            if (state) {
+                btn.html('<i class="fas fa-spinner fa-spin"></i> Finalizando...');
+                btn.prop('disabled', true);
+            } else {
+                btn.html('<i class="fas fa-check"></i> Finalizar Cadastro');
+                btn.prop('disabled', false);
+            }
+        }
+    
+        // Função para mostrar/esconder senha
+        function togglePassword(fieldId) {
+            const input = $('#' + fieldId);
+            const icon = $('#' + fieldId).siblings('.toggle-password').find('i');
+            
+            if (input.attr('type') === 'password') {
+                input.attr('type', 'text');
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                input.attr('type', 'password');
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        }
+    </script>
+</body>
+</html>

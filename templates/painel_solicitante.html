@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <title>Painel do Solicitante - RMCred</title>
+    <style>
+        :root {
+            --primary: #2a7de1;
+            --secondary: #6c757d;
+            --success: #28a745;
+            --danger: #dc3545;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+            color: var(--dark);
+        }
+        
+        .dashboard-header {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-title {
+            font-size: 22px;
+            font-weight: 600;
+        }
+        
+        .user-menu {
+            position: relative;
+        }
+        
+        .menu-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        
+        .menu-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            min-width: 200px;
+            padding: 10px 0;
+            z-index: 100;
+            display: none;
+        }
+        
+        .dropdown-menu.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .dropdown-menu a {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            color: var(--dark);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .dropdown-menu a:hover {
+            background: var(--light);
+            color: var(--primary);
+        }
+        
+        .dropdown-menu i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .dashboard-container {
+            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .welcome-title {
+            font-size: 24px;
+            color: var(--dark);
+            margin-bottom: 10px;
+        }
+        
+        .welcome-subtitle {
+            color: var(--secondary);
+            font-size: 16px;
+        }
+
+        .actions-title {
+            text-align: center;
+            margin: 30px 0 20px;
+            color: var(--dark);
+            font-size: 20px;
+        }
+        
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .action-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        .action-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+        
+        .action-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+        
+        .action-description {
+            color: var(--secondary);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .action-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .action-link:hover {
+            background: #1a6bc8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn-chat {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--success);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            text-decoration: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+        
+        .btn-chat:hover {
+            background: #218838;
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .unread-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            .actions-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-container {
+                padding: 20px;
+            }
+        }
+
+        .social-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin: 25px 0;
+        }
+    
+        .social-card {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 10px;
+            padding: 15px 20px;
+            text-decoration: none;
+            color: #333;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 1px solid #eee;
+        }
+    
+        .social-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #2a7de1;
+        }
+    
+        .social-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #e3f2fd;
+            color: #2a7de1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+    
+        .social-content {
+            flex: 1;
+        }
+    
+        .social-content h3 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+        }
+    
+        .social-content p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+    
+        .arrow {
+            color: #999;
+            font-size: 14px;
+            margin-left: 15px;
+        }
+    
+        .badge {
+            display: inline-block;
+            background: #e74c3c;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    
+        @media (max-width: 768px) {
+            .social-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+                margin-right: 15px;
+            }
+            
+            .social-content h3 {
+                font-size: 16px;
+            }
+        }
+
+        /* Estilos adicionais para o menu melhorado */
+        .menu-section {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .menu-section:last-child {
+            border-bottom: none;
+        }
+        
+        .menu-header {
+            padding: 8px 20px;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .menu-header i {
+            font-size: 14px;
+        }
+        
+        .dropdown-menu a {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+        }
+        
+        .dropdown-menu a i {
+            width: 20px;
+            text-align: center;
+            margin-right: 12px;
+            color: var(--secondary);
+        }
+        
+        .dropdown-menu a:hover i {
+            color: var(--primary);
+        }
+        
+        .menu-badge {
+            background: var(--danger);
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .logout-btn {
+            color: var(--danger) !important;
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(220, 53, 69, 0.1) !important;
+        }
+        
+        .logout-btn i {
+            width: 20px;
+            text-align: center;
+            margin-right: 12px;
+            color: var(--danger) !important;
+        }
+        
+        .menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+        
+        .menu-btn i {
+            font-size: 20px;
+        }
+
+        .social-actions {
+            margin: 25px 30px;
+        }
+        
+        .social-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        
+        .social-card {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-decoration: none;
+            color: #333;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 1px solid #eee;
+            min-height: 80px;
+        }
+        
+        .social-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #2a7de1;
+        }
+        
+        .social-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e3f2fd;
+            color: #2a7de1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .social-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .social-content h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .social-content p {
+            margin: 0;
+            color: #666;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .arrow {
+            color: #999;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: #e74c3c;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .social-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .social-card {
+                padding: 12px;
+            }
+        }
+
+
+        /* Botão flutuante de suporte */
+
+#suporte-botao {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background-color: #2a7de1;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 999;
+}
+
+#chatbot-container {
+    position: fixed;
+    bottom: 80px;
+    left: 20px;
+    width: 280px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    display: none;
+    flex-direction: column;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    font-family: Arial, sans-serif;
+}
+
+#chatbot-header {
+    background: #2a7de1;
+    color: white;
+    padding: 10px;
+    border-radius: 8px 8px 0 0;
+    font-weight: bold;
+}
+
+#chatbot-mensagens {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px;
+    font-size: 14px;
+}
+
+#chatbot-input {
+    border: none;
+    border-top: 1px solid #ccc;
+    padding: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.bot {
+    background: #f1f1f1;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+}
+    </style>
+</head>
+<body>
+    <header class="dashboard-header">
+        <div class="header-title">RMCred - Painel do Cliente</div>
+        <div class="user-menu">
+            <button class="menu-btn" onclick="toggleMenu()">
+                <i class="fas fa-user-circle"></i> {{ usuario }}
+            </button>
+            <div class="dropdown-menu" id="dropdownMenu">
+                <div class="menu-section">
+                    <div class="menu-header">
+                        <i class="fas fa-user"></i> Minha Conta
+                    </div>
+                    <a href="{{ url_for('editar_perfil') }}"><i class="fas fa-user-edit"></i> Perfil</a>
+                    <a href="{{ url_for('configuracoes_conta') }}"><i class="fas fa-cog"></i> Configurações</a>
+                </div>
+                
+                <div class="menu-section">
+                    <div class="menu-header">
+                        <i class="fas fa-hand-holding-usd"></i> Empréstimos
+                    </div>
+                    <a href="{{ url_for('solicitar') }}"><i class="fas fa-calculator"></i> Solicitar</a>
+                    <a href="{{ url_for('emprestimos_aprovados') }}"><i class="fas fa-list"></i> Meus Ativos</a>
+                    <a href="{{ url_for('minhas_solicitacoes') }}"><i class="fas fa-check-circle"></i> Solicitações</a>
+                </div>
+                
+                <div class="menu-section">
+                    <div class="menu-header">
+                        <i class="fas fa-users"></i> Rede
+                    </div>
+                    <a href="{{ url_for('ver_amigos') }}"><i class="fas fa-user-friends"></i> Ver Amigos</a>
+                    <a href="{{ url_for('buscar_usuario') }}"><i class="fas fa-search"></i> Buscar Usuários</a>
+                    <a href="{{ url_for('solicitacoes_amizade') }}">
+                        <i class="fas fa-user-friends"></i> Solicitações
+                        {% if solicitacoes_amizade > 0 %}
+                        <span class="menu-badge">{{ solicitacoes_amizade }}</span>
+                        {% endif %}
+                    </a>
+                </div>
+                
+                <div class="menu-section">
+                    <a href="{{ url_for('logout') }}" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </a>
+                </div>
+            </div>        
+        </div>
+    </header>
+
+    <div class="social-actions">
+        <div class="social-grid">
+            <a href="{{ url_for('buscar_usuario') }}" class="social-card">
+                <div class="social-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="social-content">
+                    <h3>Buscar Usuários</h3>
+                    <p>Encontre novos contatos</p>
+                </div>
+                <i class="fas fa-chevron-right arrow"></i>
+            </a>
+    
+            <a href="{{ url_for('solicitacoes_amizade') }}" class="social-card">
+                <div class="social-icon" style="background-color: #f8e3c5; color: #e67e22;">
+                    <i class="fas fa-user-friends"></i>
+                </div>
+                <div class="social-content">
+                    <h3>Solicitações de Amizade</h3>
+                    <p>Pedidos de conexão</p>
+                    {% if solicitacoes_amizade > 0 %}
+                    <span class="badge">{{ solicitacoes_amizade }} nova(s)</span>
+                    {% endif %}
+                </div>
+                <i class="fas fa-chevron-right arrow"></i>
+            </a>
+    
+            <a href="{{ url_for('ver_amigos') }}" class="social-card">
+                <div class="social-icon" style="background-color: #e0f2e9; color: #2ecc71;">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="social-content">
+                    <h3>Ver Amigos</h3>
+                    <p>Sua rede de contatos</p>
+                </div>
+                <i class="fas fa-chevron-right arrow"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="dashboard-container">
+        <div class="welcome-section">
+            <h1 class="welcome-title">Bem-vindo, {{ usuario }}!</h1>
+            <p class="welcome-subtitle">Este é o seu painel de solicitante</p>
+        </div>
+
+        <div class="actions-grid">
+            <div class="action-card" onclick="window.location.href='{{ url_for('solicitar') }}'">
+                <div class="action-icon">💰</div>
+                <h3 class="action-title">Solicitar Empréstimo</h3>
+                <p class="action-description">Envie uma nova solicitação de empréstimo</p>
+                <a href="{{ url_for('solicitar') }}" class="action-link">Acessar</a>
+            </div>
+
+            <div class="action-card" onclick="window.location.href='{{ url_for('emprestimos_aprovados') }}'">
+                <div class="action-icon">✅</div>
+                <h3 class="action-title">Solicitações Ativas</h3>
+                <p class="action-description">Acompanhe suas solicitações ativa</p>
+                <a href="{{ url_for('emprestimos_aprovados') }}" class="action-link">Visualizar</a>
+            </div>
+            
+            <div class="action-card" onclick="window.location.href='{{ url_for('minhas_solicitacoes') }}'">
+                <div class="action-icon">📋</div>
+                <h3 class="action-title">Minhas Solicitações</h3>
+                <p class="action-description">Acompanhe o status das suas solicitações</p>
+                <a href="{{ url_for('minhas_solicitacoes') }}" class="action-link">Visualizar</a>
+            </div>
+        </div>
+    </div>
+
+        <div id="suporte-botao" onclick="abrirChatBot()">
+    💬 Suporte
+</div>
+
+<div id="chatbot-container">
+    <div id="chatbot-header">Atendimento RMCred</div>
+    <div id="chatbot-mensagens">
+    </div>
+    <input type="text" id="chatbot-input" placeholder="Digite sua pergunta..." onkeypress="if(event.key === 'Enter') enviarMensagemBot()">
+</div>
+
+    <a href="{{ url_for('lista_usuarios_para_conversar') }}" class="btn-chat">
+        💬 Conversar com Usuários
+        {% if unread_count and unread_count > 0 %}
+        <span class="unread-badge">
+            {% if unread_count > 9 %}9+{% else %}{{ unread_count }}{% endif %}
+        </span>
+        {% endif %}
+    </a>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+    const socket = io();
+    const currentUser = "{{ session['user'] }}";
+    
+    // Conectar o usuário a uma sala pessoal para notificações
+    socket.on('connect', () => {
+        socket.emit('registrar_usuario', { user: currentUser });
+    });
+    
+    // Atualizar contagem de mensagens não lidas
+    socket.on('atualizar_contagem', (data) => {
+        const badge = document.querySelector('.unread-badge');
+        const btnChat = document.querySelector('.btn-chat');
+        
+        if (data.count > 0) {
+            if (!badge) {
+                const newBadge = document.createElement('span');
+                newBadge.className = 'unread-badge';
+                newBadge.textContent = data.count;
+                btnChat.appendChild(newBadge);
+            } else {
+                badge.textContent = data.count;
+            }
+        } else if (badge) {
+            badge.remove();
+        }
+    });
+    
+    // Atualizar contagem periodicamente (fallback)
+    function atualizarContagem() {
+        fetch('/mensagens/nao-lidas')
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.querySelector('.unread-badge');
+                const btnChat = document.querySelector('.btn-chat');
+                
+                if (data.count > 0) {
+                    if (!badge) {
+                        const newBadge = document.createElement('span');
+                        newBadge.className = 'unread-badge';
+                        newBadge.textContent = data.count;
+                        btnChat.appendChild(newBadge);
+                    } else {
+                        badge.textContent = data.count;
+                    }
+                } else if (badge) {
+                    badge.remove();
+                }
+            });
+    }
+    
+    // Atualizar a cada 30 segundos (apenas como fallback)
+    setInterval(atualizarContagem, 30000);
+    atualizarContagem(); // Executar imediatamente ao carregar
+
+        // Função toggleMenu mantida igual
+    function toggleMenu() {
+        document.getElementById('dropdownMenu').classList.toggle('show');
+    }
+    
+    // Fechar menu ao clicar fora
+    window.onclick = function(event) {
+        const modal = document.getElementById('chartModal');
+        if (event.target === modal) {
+            closeChartModal();
+        }
+        
+        if (!event.target.closest('.user-menu')) {
+            var dropdowns = document.getElementsByClassName("dropdown-menu");
+            for (var i = 0; i < dropdowns.length; i++) {
+                var openDropdown = dropdowns[i];
+                if (openDropdown.classList.contains('show')) {
+                    openDropdown.classList.remove('show');
+                }
+            }
+        }
+    }
+
+            // Função para abrir o chat de suporte
+
+function abrirChatBot() {
+    const chat = document.getElementById('chatbot-container');
+    const mensagens = document.getElementById('chatbot-mensagens');
+    
+    chat.style.display = chat.style.display === 'none' || !chat.style.display ? 'flex' : 'none';
+
+    // Se o chatbot for aberto, exibe a mensagem de boas-vindas
+    if (chat.style.display === 'flex' && mensagens.children.length === 0) {
+        exibirMensagemBot('Olá! Sou o assistente virtual da RMCred. Como posso ajudar você hoje?');
+        exibirMensagemBot('Posso responder perguntas sobre:');
+        exibirMensagemBot('1. Solicitação de Empréstimos');
+        exibirMensagemBot('2. Meus Empréstimos Ativos');
+        exibirMensagemBot('3. Gerenciamento de conta (perfil, configurações, senha)');
+        exibirMensagemBot('4. Suporte técnico ou contato com um atendente');
+        exibirMensagemBot('Por favor, digite o número da opção ou sua pergunta.');
+    }
+}
+
+function exibirMensagemBot(texto) {
+    const mensagens = document.getElementById('chatbot-mensagens');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'bot';
+    msgDiv.innerText = texto;
+    mensagens.appendChild(msgDiv);
+    mensagens.scrollTop = mensagens.scrollHeight;
+}
+
+function enviarMensagemBot() {
+    const input = document.getElementById('chatbot-input');
+    const userMessage = input.value.trim().toLowerCase();
+
+    if (userMessage === '') return;
+
+    const mensagens = document.getElementById('chatbot-mensagens');
+
+    const userMsgDiv = document.createElement('div');
+    userMsgDiv.className = 'bot'; // Reusing 'bot' class for user messages, but with a different background
+    userMsgDiv.style.background = '#d1ecf1';
+    userMsgDiv.innerText = input.value;
+    mensagens.appendChild(userMsgDiv);
+
+    let botResponse = '';
+
+    if (userMessage.includes('olá') || userMessage.includes('oi') || userMessage.includes('ajuda')) {
+        botResponse = 'Olá! Como posso ajudar você? Posso falar sobre solicitar empréstimos, seus empréstimos ativos, gerenciamento de conta ou suporte.';
+    } else if (userMessage.includes('1') || userMessage.includes('solicitar') || userMessage.includes('empréstimo') || userMessage.includes('como funciona')) {
+        botResponse = 'Para solicitar um empréstimo, você deve ir à seção "Empréstimos > Solicitar" no seu painel. Lá você poderá preencher os detalhes da sua solicitação e aguardar a aprovação de um emprestador. É um processo rápido e seguro!';
+    } else if (userMessage.includes('2') || userMessage.includes('ativos') || userMessage.includes('minhas solicitações')) {
+        botResponse = 'Para acompanhar suas solicitações ou ver empréstimos ativos, você pode:\n\n' +
+                      '- **Meus Empréstimos Ativos:** Acesse "Empréstimos > Meus Ativos" para ver o status dos empréstimos que você possui.\n' +
+                      '- **Minhas Solicitações:** Em "Empréstimos > Solicitações" você pode verificar o andamento de todas as suas solicitações, aprovadas, pendentes ou recusadas.';
+    } else if (userMessage.includes('3') || userMessage.includes('conta') || userMessage.includes('perfil') || userMessage.includes('configurações') || userMessage.includes('senha')) {
+        botResponse = 'Para gerenciar sua conta, você pode:\n\n' +
+                      '- **Editar seu perfil:** Acesse "Minha Conta > Perfil" para atualizar seus dados pessoais.\n' +
+                      '- **Configurações da conta:** Em "Minha Conta > Configurações", você pode ajustar suas preferências.\n' +
+                      '- **Esqueci minha senha:** Se você esqueceu sua senha, por favor, saia do painel e na tela de login use a opção "Esqueci minha senha" para redefinir.';
+    } else if (userMessage.includes('4') || userMessage.includes('suporte') || userMessage.includes('atendente') || userMessage.includes('falar')) {
+        botResponse = 'Entendido. Para falar com um atendente, por favor, envie um e-mail para suporte@rmcred.com ou descreva sua questão detalhadamente aqui e um de nossos especialistas responderá assim que possível.';
+    } else if (userMessage.includes('obrigado') || userMessage.includes('valeu')) {
+        botResponse = 'De nada! Fico feliz em ajudar. Se precisar de mais alguma coisa, é só perguntar.';
+    }
+    else {
+        botResponse = 'Desculpe, não entendi sua pergunta. Por favor, tente reformular ou escolha uma das opções a seguir:\n\n' +
+                    '1. Solicitação de Empréstimos\n' +
+                    '2. Meus Empréstimos Ativos\n' +
+                    '3. Gerenciamento da minha Conta\n' +
+                    '4. Falar com Suporte';
+    }
+
+    exibirMensagemBot(botResponse);
+    input.value = '';
+}
+    </script>
+</body>
+</html>

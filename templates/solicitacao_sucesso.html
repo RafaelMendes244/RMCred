@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitação Enviada - RMCred</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2a7de1;
+            --success: #28a745;
+            --light: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .icon-success {
+            font-size: 50px;
+            color: var(--success);
+            margin-bottom: 20px;
+        }
+        
+        .detalhes {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: left;
+        }
+        
+        .detalhes-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .detalhes-item:last-child {
+            border-bottom: none;
+        }
+        
+        .btn-voltar {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 25px;
+            background: var(--primary);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-voltar:hover {
+            background: #1a6bc8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon-success">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        
+        <h2>Solicitação Enviada com Sucesso!</h2>
+        <p>Sua solicitação foi recebida e está em análise.</p>
+        
+        <div class="detalhes">
+            <div class="detalhes-item">
+                <span>Valor:</span>
+                <strong>R$ {{ "%.2f"|format(dados_solicitacao.valor) }}</strong>
+            </div>
+            <div class="detalhes-item">
+                <span>Juros:</span>
+                <strong>{{ dados_solicitacao.juros }}%</strong>
+            </div>
+            <div class="detalhes-item">
+                <span>Prazo:</span>
+                <strong>{{ dados_solicitacao.dias }} dias</strong>
+            </div>
+            <div class="detalhes-item">
+                <span>Emprestador:</span>
+                <strong>{{ dados_solicitacao.emprestador }}</strong>
+            </div>
+        </div>
+        
+        <p>Você será notificado quando houver atualizações.</p>
+        
+        <a href="{{ url_for('minhas_solicitacoes') }}" class="btn-voltar">
+            <i class="fas fa-list"></i> Ver Minhas Solicitações
+        </a>
+    </div>
+</body>
+</html>

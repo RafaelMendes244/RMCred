@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMCred - Solicitações Recebidas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --light-gray: #f7f7f7;
+            --dark-gray: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--light-gray);
+            margin: 0;
+            padding: 0;
+            color: var(--dark-gray);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            position: relative;
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            margin-bottom: 0;
+            font-size: 28px;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100px;
+            height: 3px;
+            background: var(--primary-color);
+        }
+
+        .filtros {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filtro-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filtro-btn:hover, .filtro-btn.ativo {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 15px;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+            display: inline-block;
+            min-width: 90px;
+        }
+
+        .status-pendente {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-aprovado {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-recusado {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .btn-aprovar {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-aprovar:hover {
+            background: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(46, 204, 113, 0.3);
+        }
+
+        .btn-recusar {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-recusar:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-voltar {
+            background: #7f8c8d;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            text-decoration: none;
+            align-items: center;
+            gap: 5px;
+            position: absolute;
+            top: 25px;
+            right: 25px;
+        }
+
+        .btn-voltar:hover {
+            background: #6c7a7d;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+            text-decoration: none;
+        }
+
+        .btn-editar {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .btn-editar:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(241, 196, 15, 0.3);
+        }
+
+        .acoes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 120px;
+        }
+
+        .mensagem-cell {
+            max-width: 250px;
+            word-break: break-word;
+            text-align: left;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 15px;
+            }
+            
+            .header-container {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .btn-voltar {
+                position: static;
+                margin-top: 15px;
+                width: 100%;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+            }
+            
+            .acoes-container {
+                flex-direction: row;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-container">
+            <h2><i class="fas fa-inbox"></i> Solicitações Recebidas</h2>
+            <a href="{{ url_for('painel') }}" class="btn-voltar">
+                <i class="fas fa-arrow-left"></i> Voltar ao painel
+            </a>
+        </div>
+        
+        <!-- Filtros -->
+        <div class="filtros">
+            <button class="filtro-btn ativo" data-status="todos">Todos</button>
+            <button class="filtro-btn" data-status="pendente">Pendentes</button>
+            <button class="filtro-btn" data-status="aprovado">Aprovados</button>
+            <button class="filtro-btn" data-status="recusado">Recusados</button>
+        </div>
+        
+        {% if solicitacoes %}
+        <table id="tabelaSolicitacoes">
+            <thead>
+                <tr>
+                    <th>Solicitante</th>
+                    <th>Valor</th>
+                    <th>Juros</th>
+                    <th>Prazo</th>
+                    <th>Mensagem</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in solicitacoes %}
+                <tr data-status="{{ s[6] }}">
+                    <td>
+                        <strong>{{ s[1] }}</strong>
+                        <div class="badge badge-info">
+                            <i class="fas fa-user"></i> ID: {{ s[0] }}
+                        </div>
+                    </td>
+                    <td>R$ {{ "%.2f"|format(s[3]) }}</td>
+                    <td>{{ s[4] }}%</td>
+                    <td>{{ s[5] }} dias</td>
+                    <td class="mensagem-cell">
+                        <details>
+                            <summary>{{ (s[7] or 'Sem mensagem')|truncate(30) }}</summary>
+                            <p style="margin-top: 8px;">{{ s[7] or 'Nenhuma mensagem adicional' }}</p>
+                        </details>
+                    </td>
+                    <td>
+                        <span class="status status-{{ s[6] }}">
+                            <i class="fas fa-{% if s[6] == 'aprovado' %}check-circle{% elif s[6] == 'recusado' %}times-circle{% else %}clock{% endif %}"></i>
+                            {{ s[6].capitalize() }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if s[6] == 'pendente' %}
+                        <div class="acoes-container">
+                            <a href="{{ url_for('aprovar_solicitacao', id=s[0]) }}" 
+                            class="btn btn-sm btn-aprovar">
+                                <i class="fas fa-check-circle"></i> Aprovar
+                            </a>
+                            <a href="{{ url_for('recusar_solicitacao', id=s[0]) }}" 
+                            class="btn btn-sm btn-recusar">
+                                <i class="fas fa-times-circle"></i> Recusar
+                            </a>
+                            <a href="{{ url_for('editar_solicitacao', id=s[0], origem='solicitacoes') }}" 
+                            class="btn btn-sm btn-editar">
+                                <i class="fas fa-edit"></i> Editar
+                            </a>
+                        </div>
+                        {% else %}
+                            <span style="color: #95a5a6;">Processado</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+            <i class="fas fa-inbox" style="font-size: 50px; opacity: 0.5;"></i>
+            <h3>Nenhuma solicitação recebida</h3>
+            <p>Não há solicitações pendentes no momento.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Adiciona confirmação para ações
+        document.addEventListener('DOMContentLoaded', function() {
+            // Confirmação para ações
+            const handleAction = (action) => {
+                return confirm(`Tem certeza que deseja ${action} esta solicitação?`);
+            };
+
+            document.querySelectorAll('.btn-aprovar').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    if(!handleAction('APROVAR')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+
+            document.querySelectorAll('.btn-recusar').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    if(!handleAction('RECUSAR')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+
+            // Filtros
+            const filtros = document.querySelectorAll('.filtro-btn');
+            const linhas = document.querySelectorAll('#tabelaSolicitacoes tbody tr');
+
+            filtros.forEach(filtro => {
+                filtro.addEventListener('click', function() {
+                    // Ativa o botão clicado
+                    filtros.forEach(f => f.classList.remove('ativo'));
+                    this.classList.add('ativo');
+
+                    const status = this.dataset.status;
+                    
+                    linhas.forEach(linha => {
+                        if(status === 'todos' || linha.dataset.status === status) {
+                            linha.style.display = '';
+                        } else {
+                            linha.style.display = 'none';
+                        }
+                    });
+                });
+            });
+
+            // Ordena para mostrar pendentes primeiro por padrão
+            const tbody = document.querySelector('#tabelaSolicitacoes tbody');
+            if(tbody) {
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                
+                rows.sort((a, b) => {
+                    if(a.dataset.status === 'pendente' && b.dataset.status !== 'pendente') return -1;
+                    if(a.dataset.status !== 'pendente' && b.dataset.status === 'pendente') return 1;
+                    return 0;
+                });
+                
+                rows.forEach(row => tbody.appendChild(row));
+            }
+        });
+    </script>
+</body>
+</html>

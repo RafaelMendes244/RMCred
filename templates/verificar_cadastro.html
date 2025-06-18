@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <title>Verificação - RMCred</title>
+    <style>
+        :root {
+            --primary: #2a7de1;
+            --danger: #dc3545;
+            --success: #28a745;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .verification-container {
+            background-color: white;
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .logo {
+            color: var(--primary);
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .subtitle {
+            color: #6c757d;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .code-inputs {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            gap: 10px;
+        }
+        
+        .code-input {
+            width: 50px;
+            height: 60px;
+            text-align: center;
+            font-size: 24px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .code-input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(42, 125, 225, 0.1);
+        }
+        
+        .btn-verify {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .btn-verify:hover {
+            background: #1a6bc8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            color: var(--danger);
+            border: 1px solid #f5c6cb;
+        }
+        
+        .resend-link {
+            margin-top: 20px;
+            color: #6c757d;
+        }
+        
+        .resend-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .resend-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .timer {
+            color: var(--danger);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <div class="logo">
+            <i class="fas fa-shield-alt"></i>
+            <span>RMCred</span>
+        </div>
+        <h2>Verificação de E-mail</h2>
+        <div class="subtitle">Enviamos um código de 6 dígitos para <strong>{{ session['cadastro']['email'] if 'cadastro' in session else 'seu email' }}</strong></div>
+        
+        {% if erro %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i> {{ erro }}
+        </div>
+        {% endif %}
+        
+        <form method="POST" action="{{ url_for('verificar_cadastro') }}">
+            <div class="code-inputs">
+                <input type="text" name="digit1" class="code-input" maxlength="1" pattern="[0-9]" required autofocus>
+                <input type="text" name="digit2" class="code-input" maxlength="1" pattern="[0-9]" required>
+                <input type="text" name="digit3" class="code-input" maxlength="1" pattern="[0-9]" required>
+                <input type="text" name="digit4" class="code-input" maxlength="1" pattern="[0-9]" required>
+                <input type="text" name="digit5" class="code-input" maxlength="1" pattern="[0-9]" required>
+                <input type="text" name="digit6" class="code-input" maxlength="1" pattern="[0-9]" required>
+            </div>
+            
+            <button type="submit" class="btn-verify">
+                <i class="fas fa-check"></i> Verificar Código
+            </button>
+        </form>
+        
+        <div class="resend-link">
+            Não recebeu o código? 
+            <a href="{{ url_for('reenviar_codigo') }}" id="resendLink">Reenviar código</a>
+            <span id="timer" class="timer"></span>
+        </div>
+    </div>
+
+    <script>
+        // Auto-focus e navegação entre inputs
+        const inputs = document.querySelectorAll('.code-input');
+        
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', () => {
+                if (input.value.length === 1) {
+                    if (index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+                }
+            });
+            
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && input.value.length === 0) {
+                    if (index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                }
+            });
+        });
+        
+        // Contador para reenvio
+        let timeLeft = 60;
+        const timerElement = document.getElementById('timer');
+        const resendLink = document.getElementById('resendLink');
+        
+        function updateTimer() {
+            if (timeLeft > 0) {
+                timerElement.textContent = ` (${timeLeft}s)`;
+                timeLeft--;
+                setTimeout(updateTimer, 1000);
+                resendLink.style.pointerEvents = 'none';
+                resendLink.style.opacity = '0.5';
+            } else {
+                timerElement.textContent = '';
+                resendLink.style.pointerEvents = 'auto';
+                resendLink.style.opacity = '1';
+            }
+        }
+        
+        updateTimer();
+    </script>
+</body>
+</html>

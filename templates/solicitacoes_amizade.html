@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}Solicitações de Amizade{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="header-actions">
+        <a href="{{ url_for('painel' if session.get('tipo') == 'emprestador' else 'painel_solicitante') }}" 
+        class="btn-voltar">
+            <i class="fas fa-arrow-left"></i> Voltar ao painel
+        </a>
+    </div>
+    
+    <h2><i class="fas fa-user-friends"></i> Solicitações de Amizade</h2>
+    
+    {% if solicitacoes %}
+    <div class="requests-container">
+        <ul class="requests-list">
+            {% for s in solicitacoes %}
+            <li class="request-item">
+                <div class="request-info">
+                    <i class="fas fa-user"></i>
+                    <span>{{ s[1] }}</span>
+                </div>
+                <div class="request-actions">
+                    <a href="{{ url_for('aprovar_amizade', id=s[0]) }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-check"></i> Aprovar
+                    </a>
+                    <a href="{{ url_for('recusar_amizade', id=s[0]) }}" class="btn btn-danger btn-sm">
+                        <i class="fas fa-times"></i> Recusar
+                    </a>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-inbox" style="font-size: 50px; color: #6c757d; opacity: 0.5;"></i>
+        <p>Você não tem novas solicitações de amizade.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .header-actions {
+        margin-bottom: 20px;
+    }
+    
+    .btn-voltar {
+        background: #6c757d;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+    
+    .btn-voltar:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+    
+    .requests-container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .requests-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .request-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .request-item:last-child {
+        border-bottom: none;
+    }
+    
+    .request-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .request-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background-color: #218838;
+    }
+    
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background-color: #c82333;
+    }
+    
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}

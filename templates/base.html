@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMCred - {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="page-container">
+        <header class="main-header">
+            <div class="header-content">
+                <h1>RMCred</h1>
+                <nav class="main-nav">
+                    <!-- Adicione links de navegação se necessário -->
+                </nav>
+            </div>
+        </header>
+        
+        <main class="main-content">
+            <div class="content-container">
+                <!-- BLOCO ÚNICO DE MENSAGENS (AQUI É O CORRETO) -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                <i class="fas 
+                                    {% if category == 'success' %}fa-check-circle
+                                    {% elif category == 'info' %}fa-info-circle
+                                    {% elif category == 'danger' %}fa-exclamation-circle
+                                    {% endif %}">
+                                </i>
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+        
+        <footer class="main-footer">
+            <p>&copy; 2023 RMCred - Todos os direitos reservados</p>
+        </footer>
+    </div>
+</body>
+</html>

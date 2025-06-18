@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}Editar Solicitações{% endblock %}
+{% block content %}
+<style>
+    .form-container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: #fff;
+        border-radius: 10px;
+        padding: 30px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .form-container h2 {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #2a7de1;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 15px;
+    }
+
+    .btn {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        background-color: #2a7de1;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn:hover {
+        background-color: #1f68c1;
+    }
+
+    .btn-voltar {
+        display: block; /* Mantém no fluxo da página */
+        margin-top: 20px;
+        background: #7f8c8d;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        gap: 5px;
+        text-align: center;
+    }
+    
+    .btn-voltar:hover {
+        background: #6c7a7d;
+        transform: translateY(-2px);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+        text-decoration: none;
+    }    
+</style>
+
+<div class="form-container">
+    <h2>Editar Solicitação</h2>
+    <form method="POST">
+        <input type="hidden" name="origem" value="{{ origem }}">
+        
+        <div class="form-group">
+            <label for="valor">Valor (R$)</label>
+            <input type="number" name="valor" id="valor" step="0.01" value="{{ emprestimo['valor'] }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="juros">Juros (%)</label>
+            <input type="number" name="juros" id="juros" step="0.01" value="{{ emprestimo['juros'] }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="dias">Prazo (dias)</label>
+            <input type="number" name="dias" id="dias" value="{{ emprestimo['dias'] }}" required>
+        </div>
+        
+        {% if origem == 'loans' %}
+        <div class="form-group">
+            <label for="observacoes">Observações</label>
+            <textarea name="observacoes" id="observacoes">{{ emprestimo['observacoes'] or '' }}</textarea>
+        </div>
+        {% else %}
+        <div class="form-group">
+            <label for="mensagem">Mensagem</label>
+            <textarea name="mensagem" id="mensagem">{{ emprestimo['mensagem'] or '' }}</textarea>
+        </div>
+        {% endif %}
+        
+        <button type="submit" class="btn">Salvar Alterações</button>
+    </form>
+
+    {% if origem == 'loans' %}
+    <a href="{{ url_for('aprovacoes') }}" class="btn-voltar">← Voltar para Aprovações</a>
+    {% else %}
+    <a href="{{ url_for('ver_solicitacoes') }}" class="btn-voltar">← Voltar para Solicitações</a>
+    {% endif %}
+</div>
+{% endblock %}

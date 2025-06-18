@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMCred - Meus Empréstimos Aprovados</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .card-emprestimo {
+            border-left: 4px solid var(--primary);
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .card-emprestimo:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .status-aprovado {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .card-body {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .info-item {
+            margin-bottom: 10px;
+        }
+        
+        .info-label {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 3px;
+        }
+        
+        .info-value {
+            font-weight: 500;
+            font-size: 16px;
+        }
+        
+        .progresso {
+            margin-top: 20px;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 30%;
+        }
+        
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+        
+        .btn-voltar {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .btn-voltar:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 768px) {
+            .card-body {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-actions">
+            <a href="{{ url_for('painel_solicitante') }}" class="btn-voltar">
+                <i class="fas fa-arrow-left"></i> Voltar ao painel
+            </a>
+        </div>
+        <h2><i class="fas fa-file-invoice-dollar"></i> Meus Empréstimos Aprovados</h2>
+        
+        {% if emprestimos %}
+            {% for emp in emprestimos %}
+            <div class="card-emprestimo">
+                <div class="card-header">
+                    <div class="card-title">Empréstimo #{{ emp.id }}</div>
+                    <div class="status status-aprovado">Aprovado</div>
+                </div>
+                
+                <div class="card-body">
+                    <div class="info-item">
+                        <div class="info-label">Valor</div>
+                        <div class="info-value">R$ {{ "%.2f"|format(emp.valor) }}</div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">Total a Pagar</div>
+                        <div class="info-value">R$ {{ "%.2f"|format(emp.total) }}</div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">Juros</div>
+                        <div class="info-value">{{ emp.juros }}%</div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">Prazo</div>
+                        <div class="info-value">{{ emp.dias }} dias</div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">Data de Vencimento</div>
+                        <div class="info-value">{{ emp.vencimento.strftime('%d/%m/%Y') }}</div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">Status</div>
+                        <div class="info-value">{{ emp.status.capitalize() }}</div>
+                    </div>
+                </div>
+                
+                <div class="progresso">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ emp.percentual_pago }}%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span>Pagamento: {{ emp.percentual_pago }}%</span>
+                        <span>Dias restantes: {{ emp.dias_restantes }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+                <i class="fas fa-inbox" style="font-size: 50px; opacity: 0.5;"></i>
+                <h3>Nenhum empréstimo aprovado</h3>
+                <p>Você ainda não tem empréstimos aprovados.</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% block title %}Amigos{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="header-actions mb-4">
+        <a href="{{ url_for('painel' if session.get('tipo') == 'emprestador' else 'painel_solicitante') }}" 
+        class="btn-voltar">
+            <i class="fas fa-arrow-left"></i> Voltar ao painel
+        </a>
+    </div>
+
+    <h2 class="section-title"><i class="fas fa-user-friends"></i> Meus Amigos</h2>
+    
+    {% if amigos %}
+    <div class="friends-list">
+        {% for amigo in amigos %}
+<div class="friend-card">
+    <div class="friend-info">
+        <div class="friend-avatar">
+            <i class="fas fa-user"></i>
+        </div>
+        <div>
+            <h3>{{ amigo[0] }}</h3>
+            <p>Status: {{ amigo[1] }}</p>
+            {% if amigo[2] %}  {# Se tem_emprestimos_pendentes é True #}
+            <div class="alert-warning friend-alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Empréstimos pendentes com este amigo</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="friend-actions">
+        <a href="{{ url_for('conversa', destinatario=amigo[0]) }}" class="btn btn-outline-primary">
+            <i class="fas fa-comment-dots"></i> Conversar
+        </a>
+        <a href="{{ url_for('remover_amigo', nome=amigo[0]) }}" 
+        class="btn btn-outline-danger {% if amigo[2] %}disabled-link{% endif %}"
+        {% if amigo[2] %}onclick="alert('Você não pode remover este amigo enquanto houver empréstimos pendentes.'); return false;"{% endif %}>
+            <i class="fas fa-user-minus"></i> Remover
+        </a>
+    </div>
+</div>
+{% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-user-friends" style="font-size: 50px; color: #6c757d; opacity: 0.5;"></i>
+        <h3>Nenhum amigo adicionado</h3>
+        <p>Você ainda não tem amigos em sua lista</p>
+        <a href="{{ url_for('buscar_usuario') }}" class="btn btn-primary">
+            <i class="fas fa-search"></i> Buscar usuários
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .friends-list {
+        display: grid;
+        gap: 15px;
+    }
+    
+    .friend-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s;
+    }
+    
+    .friend-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+    
+    .friend-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .friend-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #e3f2fd;
+        color: #2a7de1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+    
+    .friend-info h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #333;
+    }
+    
+    .friend-info p {
+        margin: 0;
+        font-size: 14px;
+        color: #6c757d;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    
+    .empty-state h3 {
+        margin: 15px 0 5px;
+        color: #333;
+    }
+    
+    .empty-state p {
+        color: #6c757d;
+        margin-bottom: 20px;
+    }
+
+    .btn-voltar {
+        background: #6c757d;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+    
+    .btn-voltar:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    /* Estilos para alerta de empréstimos pendentes */
+    .friend-alert {
+        padding: 5px 10px;
+        margin-top: 5px;
+        font-size: 12px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .friend-alert i {
+        font-size: 14px;
+    }
+    
+    .disabled-link {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+        text-decoration: none;
+    }
+
+    .alert-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .alert-container {
+    margin-top: 15px;
+    margin-bottom: 20px;
+}
+
+.alert {
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+</style>
+{% endblock %}

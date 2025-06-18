@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMCred - Recuperar Senha</title>
+    <link rel="stylesheet" href="/static/css/auth.css">
+</head>
+<body>
+    <div class="box">
+        <h2>Recuperar Senha</h2>
+        <form method="POST" autocomplete="off" id="recovery-form">
+            <!-- Substitua em recuperar.html -->
+            <label for="email">
+                <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 8px;">
+                    <path fill="#7f8c8d" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                </svg>
+                E-mail cadastrado:
+            </label>
+            <input 
+                type="email" 
+                id="email" 
+                name="email" 
+                placeholder="seu@email.com" 
+                required
+            >
+            <button type="submit" id="submit-btn">
+                <span id="btn-text">Enviar código</span>
+                <span id="loader" class="loader" style="display: none;">↻</span>
+            </button>
+        </form>
+
+        {% if erro %}
+        <div class="alert alert-error">
+            ❌ {{ erro }}
+        </div>
+        {% endif %}
+
+        {% if mensagem %}
+        <div class="alert alert-success">
+            ✅ {{ mensagem }}
+        </div>
+        {% endif %}
+
+        <div class="link-secondary">
+            <a href="/login">Lembrou sua senha? Faça login</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('recovery-form').addEventListener('submit', function() {
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            document.getElementById('btn-text').style.display = 'none';
+            document.getElementById('loader').style.display = 'inline-block';
+        });
+    </script>
+</body>
+</html>

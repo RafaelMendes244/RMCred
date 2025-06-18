@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Simular Empréstimo{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="header-actions">
+        <a href="{{ url_for('painel') }}" class="btn btn-primary">⬅️ Voltar ao painel</a>
+    </div>
+    
+    <h1>RMCred</h1>
+    <h2>Simulação de Empréstimo</h2>
+
+    <form method="POST" action="{{ url_for('simular') }}" id="simuladorForm">
+        <div class="form-group">
+            <label for="cliente">Nome do Cliente:</label>
+            <input type="text" id="cliente" name="cliente" placeholder="Digite o nome completo" required>
+        </div>
+
+        <div class="form-group">
+            <label for="valor">Valor do Empréstimo (R$):</label>
+            <input type="number" step="0.01" id="valor" name="valor" placeholder="Ex: 1000.00" required>
+        </div>
+
+        <div class="form-group">
+            <label for="juros">Juros (% ao mês):</label>
+            <input type="number" step="0.01" id="juros" name="juros" placeholder="Ex: 2.5" required>
+        </div>
+
+        <div class="form-group">
+            <label for="dias">Prazo (dias):</label>
+            <input type="number" id="dias" name="dias" placeholder="Ex: 30" required>
+        </div>
+
+        <div class="form-group">
+            <label for="observacoes">Observações (opcional):</label>
+            <textarea id="observacoes" name="observacoes" placeholder="Digite alguma observação relevante"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Simular</button>
+    </form>
+
+    {% if dados %}
+    <div class="result-container" id="resultado">
+        <h3>Resultado da Simulação</h3>
+        <div class="result-details">
+            <p><strong>Cliente:</strong> {{ dados['cliente'] }}</p>
+            <p><strong>Valor solicitado:</strong> R$ {{ '%.2f'|format(dados['valor']) }}</p>
+            <p><strong>Juros:</strong> {{ dados['juros'] }}%</p>
+            <p><strong>Total a pagar:</strong> R$ {{ dados['total'] }}</p>
+            <p><strong>Data de vencimento:</strong> {{ dados['vencimento'] }}</p>
+            {% if dados['observacoes'] %}
+            <p><strong>Observações:</strong> {{ dados['observacoes'] }}</p>
+            {% endif %}
+            <p><strong>Status:</strong> Pendente de aprovação</p>
+        </div>
+        
+        <form method="POST" action="{{ url_for('salvar_simulacao') }}">
+            {% for key, value in dados.items() %}
+            <input type="hidden" name="{{ key }}" value="{{ value|e }}">
+            {% endfor %}
+            <button type="submit" class="btn btn-primary"><i>💾</i> Salvar Simulação</button>
+        </form>
+        
+        <div class="action-buttons">
+            <!--<button type="submit" class="btn btn-primary">-->
+                <!--<i>💾</i> Salvar Simulação-->
+            <!--</button> Depois voltarei a usar -->
+            <a href="{{ url_for('aprovacoes') }}" class="btn btn-secondary">
+                <i>📝</i> Ir para Aprovações
+            </a>
+            <button onclick="novaSimulacao()" class="btn btn-secondary">
+                <i>🔄</i> Nova Simulação
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function novaSimulacao() {
+        // Limpa o formulário
+        document.getElementById('simuladorForm').reset();
+        
+        // Remove os resultados da tela
+        const resultado = document.getElementById('resultado');
+        if (resultado) {
+            resultado.remove();
+        }
+        
+        // Rola para o topo do formulário
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Foco no primeiro campo ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    const primeiroCampo = document.querySelector('input');
+    if (primeiroCampo) {
+        primeiroCampo.focus();
+    }
+    
+    // Verifica se há resultados para rolar suavemente
+    if (document.getElementById('resultado')) {
+        setTimeout(() => {
+            document.getElementById('resultado').scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }, 300);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMCred - Minhas Solicitações</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f7f7f7; 
+            padding: 20px;
+            color: #333;
+        }
+
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .filtros {
+            display: flex;
+            gap: 15px;
+            margin: 0 auto 20px;
+            width: 95%;
+            max-width: 1200px;
+        }
+
+        .filtros select, .filtros input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .filtros input {
+            flex: 1;
+            max-width: 300px;
+        }
+
+        table {
+            width: 95%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            background: white;
+        }
+
+        th, td { 
+            padding: 12px 15px; 
+            text-align: left; 
+            border-bottom: 1px solid #e0e0e0; 
+        }
+
+        th { 
+            background: #3498db; 
+            color: #fff; 
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tr {
+            transition: all 0.2s ease;
+        }
+
+        tr:hover {
+            background-color: #f5f9fc;
+        }
+
+        td:nth-child(4) {
+            max-width: 300px;
+            word-break: break-word;
+        }
+
+        .status-pendente {
+            background: #FFF3CD;
+            color: #856404;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+            display: inline-block;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .status-aprovado {
+            background: #D4EDDA;
+            color: #155724;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+            display: inline-block;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .status-recusado {
+            background: #F8D7DA;
+            color: #721C24;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+            display: inline-block;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .btn-excluir {
+            background: #e74c3c;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        
+        .btn-excluir:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(231, 76, 60, 0.3);
+        }
+
+        .voltar {
+            display: inline-block;
+            margin-top: 25px;
+            padding: 10px 20px;
+            background: #3498db;
+            border-radius: 6px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .voltar:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .paginacao {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+            align-items: center;
+        }
+
+        .paginacao a {
+            color: #3498db;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .paginacao a:hover {
+            background: #f0f0f0;
+        }
+
+        .sem-registros {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            background: white;
+            border-radius: 8px;
+            margin: 0 auto;
+            width: 95%;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+
+        @media (max-width: 768px) {
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            
+            .filtros {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .filtros input {
+                max-width: 100%;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+            }
+        }
+
+        .pagination {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .pagination a {
+            text-decoration: none;
+            padding: 8px 12px;
+            margin: 0 5px;
+            border-radius: 4px;
+            background-color: #3498db;
+            color: white;
+        }
+        .pagination a.disabled {
+            background-color: #ccc;
+            pointer-events: none;
+        }
+
+        .btn-voltar {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            text-decoration: none;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-voltar:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-actions">
+        <a href="{{ url_for('painel_solicitante') }}" class="btn-voltar">
+            <i class="fas fa-arrow-left"></i> Voltar ao painel
+        </a>
+    </div>
+    <h2>📋 Minhas Solicitações</h2>
+
+    <div class="filtros">
+        <select id="filtro-status">
+            <option value="todos">Todos status</option>
+            <option value="pendente">Pendentes</option>
+            <option value="aprovado">Aprovados</option>
+            <option value="recusado">Recusados</option>
+        </select>
+        <input type="text" id="busca" placeholder="Buscar solicitações...">
+    </div>
+
+    {% if solicitacoes %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Valor</th>
+                    <th>Juros</th>
+                    <th>Prazo</th>
+                    <th>Observações</th>
+                    <th>Status</th>
+                    <th>Data</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in solicitacoes %}
+                    <tr>
+                        <td>R$ {{ "%.2f"|format(s['valor']) }}</td>
+                        <td>{{ s['juros'] }}%</td>
+                        <td>{{ s['dias'] }} dias</td>
+                        <td class="mensagem-cell">
+                            <details>
+                                <summary>{{ (s[7] or 'Sem mensagem')|truncate(30) }}</summary>
+                                <p style="margin-top: 8px;">{{ s[7] or 'Nenhuma mensagem adicional' }}</p>
+                            </details>
+                        </td>
+                        <td>
+                            <span class="status status-{{ s['status'] }}">
+                                {{ s['status'].capitalize() }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if 'data_criacao' in s %}
+                                {{ s['data_criacao'].strftime('%d/%m/%Y') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if s['status'] == 'pendente' %}
+                            <form action="{{ url_for('excluir_solicitacao', id=s['id']) }}" method="post" class="form-excluir">
+                                <button type="submit" class="btn-excluir">
+                                    <i class="fas fa-trash-alt"></i> Excluir
+                                </button>
+                            </form>
+                            {% else %}
+                            <span style="color: #888;">Processado</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="pagination">
+            {% if pagina > 1 %}
+                <a href="{{ url_for('minhas_solicitacoes', pagina=pagina-1) }}">← Anterior</a>
+            {% else %}
+                <a class="disabled">← Anterior</a>
+            {% endif %}
+
+            {% if pagina < total_paginas %}
+                <a href="{{ url_for('minhas_solicitacoes', pagina=pagina+1) }}">Próxima →</a>
+            {% else %}
+                <a class="disabled">Próxima →</a>
+            {% endif %}
+        </div>
+
+        <div class="paginacao">
+            {% if pagina > 1 %}
+                <a href="{{ url_for('minhas_solicitacoes', pagina=pagina-1) }}">&laquo; Anterior</a>
+            {% endif %}
+            
+            <span>Página {{ pagina }} de {{ total_paginas }}</span>
+            
+            {% if pagina < total_paginas %}
+                <a href="{{ url_for('minhas_solicitacoes', pagina=pagina+1) }}">Próxima &raquo;</a>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="sem-registros">
+            <p>Você ainda não enviou nenhuma solicitação.</p>
+        </div>
+    {% endif %}
+
+    <script>
+        // Filtro de status
+        document.getElementById('filtro-status').addEventListener('change', function() {
+            const status = this.value;
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const rowStatus = row.querySelector('.status').className.split(' ')[1].replace('status-', '');
+                if (status === 'todos' || rowStatus === status) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+
+        // Confirmação única para exclusão
+        document.querySelectorAll('.form-excluir').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if(confirm('Tem certeza que deseja excluir esta solicitação?\nEsta ação não pode ser desfeita.')) {
+                this.submit();
+            }
+        });
+    });
+
+        // Busca por texto
+        document.getElementById('busca').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const rowText = row.textContent.toLowerCase();
+                if (rowText.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

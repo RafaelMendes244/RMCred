@@ -1,0 +1,432 @@
+{% extends 'base.html' %}
+{% block title %}Bem Vindo{% endblock %}
+{% block content %}
+<style>
+    :root {
+        --primary: #2a7de1;
+        --primary-dark: #1a6bc8;
+        --success: #28a745;
+        --danger: #dc3545;
+        --light: #f8f9fa;
+        --dark: #343a40;
+        --gray: #6c757d;
+        --white: #ffffff;
+    }
+    
+    /* Container principal */
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 20px;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+    }
+    
+    /* Card de login */
+    .login-card {
+        background: var(--white);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        width: 100%;
+        max-width: 450px;
+        padding: 40px;
+        text-align: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .login-card:hover {
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    }
+    
+    /* Logo */
+    .logo {
+        color: var(--primary);
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+    
+    .animate-bounce {
+        animation: bounce 2s infinite;
+    }
+    
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+    
+    /* Subtítulo */
+    .subtitle {
+        color: var(--gray);
+        margin-bottom: 30px;
+        font-size: 16px;
+    }
+    
+    /* Alertas */
+    .alert {
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        font-size: 14px;
+        text-align: center;
+        animation: fadeIn 0.5s ease;
+    }
+    
+    .alert-success {
+        background: #e6f7ed;
+        color: var(--success);
+        border-left: 4px solid var(--success);
+    }
+    
+    .alert-danger {
+        background: #fce8e8;
+        color: var(--danger);
+        border-left: 4px solid var(--danger);
+    }
+    
+    /* Formulário */
+    .login-form {
+        margin-top: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+        text-align: left;
+        position: relative;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--dark);
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    .input-with-icon {
+        position: relative;
+    }
+    
+    .input-with-icon i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray);
+    }
+    
+    .input-with-icon input {
+        width: 100%;
+        padding: 14px 15px 14px 45px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: all 0.3s;
+    }
+    
+    .input-with-icon input:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(42, 125, 225, 0.1);
+    }
+    
+    .input-with-icon input.valid {
+        border-color: var(--success);
+    }
+    
+    .input-with-icon input.invalid {
+        border-color: var(--danger);
+    }
+    
+    /* Botão de mostrar senha */
+    .password-wrapper {
+        position: relative;
+    }
+    
+    .toggle-password {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--gray);
+        cursor: pointer;
+        font-size: 16px;
+    }
+    
+    /* Link de esqueci a senha */
+    .forgot-password {
+        display: block;
+        text-align: right;
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--primary);
+        text-decoration: none;
+    }
+    
+    .forgot-password:hover {
+        text-decoration: underline;
+    }
+    
+    /* Botão de login */
+    .btn-login {
+        width: 100%;
+        padding: 15px;
+        background: var(--primary);
+        color: var(--white);
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .btn-login:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+    
+    .btn-login .btn-icon {
+        transition: transform 0.3s;
+    }
+    
+    .btn-login:hover .btn-icon {
+        transform: translateX(5px);
+    }
+    
+    /* Divisor */
+    .divider {
+        display: flex;
+        align-items: center;
+        margin: 25px 0;
+        color: var(--gray);
+        font-size: 14px;
+    }
+    
+    .divider::before, .divider::after {
+        content: "";
+        flex: 1;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .divider::before {
+        margin-right: 10px;
+    }
+    
+    .divider::after {
+        margin-left: 10px;
+    }
+    
+    /* Login social */
+    /* Estilo do container de login social */
+.social-login {
+    margin: 25px 0;
+    text-align: center;
+}
+
+.social-login-title {
+    color: var(--gray);
+    font-size: 14px;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.social-login-title::before,
+.social-login-title::after {
+    content: "";
+    position: absolute;
+    height: 1px;
+    width: 30%;
+    background: #eee;
+    top: 50%;
+}
+
+.social-login-title::before {
+    left: 0;
+}
+
+.social-login-title::after {
+    right: 0;
+}
+
+/* Botão Google aprimorado */
+.google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    color: #5F6368;
+    border: 1px solid #DADCE0;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.google-btn:hover {
+    background: #F8F9FA;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.google-btn:active {
+    transform: translateY(0);
+}
+
+.google-btn-icon {
+    margin-right: 12px;
+    font-size: 18px;
+    color: #4285F4;
+    display: flex;
+    align-items: center;
+}
+
+.google-btn-text {
+    flex-grow: 1;
+    text-align: center;
+}
+    
+    @media (max-width: 400px) {
+        .login-card {
+            padding: 25px 15px;
+        }
+        
+        .logo {
+            font-size: 24px;
+        }
+        
+        .input-with-icon input {
+            padding: 12px 15px 12px 40px;
+        }
+    }
+</style>
+
+<div class="login-container">
+    <div class="login-card">
+        <!-- Logo com animação -->
+        <div class="logo animate-bounce">
+            <i class="fas fa-hand-holding-usd"></i>
+            <span>RMCred</span>
+        </div>
+        
+        <div class="subtitle">Acesse sua conta para gerenciar seus empréstimos</div>
+        
+        <!-- Mensagens de feedback -->
+        {% if mensagem %}
+        <div class="alert alert-success animate-fade-in">
+            <i class="fas fa-check-circle"></i> {{ mensagem }}
+        </div>
+        {% endif %}
+        
+        {% if erro %}
+        <div class="alert alert-danger animate-fade-in">
+            <i class="fas fa-exclamation-circle"></i> {{ erro }}
+        </div>
+        {% endif %}
+
+        <!-- Formulário com validação visual -->
+        <form method="POST" class="login-form">
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" name="email" placeholder="seu@email.com" required
+                    oninput="validateInput(this)">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <div class="password-wrapper">
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" name="password" placeholder="Sua senha" required
+                        oninput="validateInput(this)">
+                    </div>
+                    <button type="button" class="toggle-password" onclick="togglePassword()">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <a href="{{ url_for('recuperar') }}" class="forgot-password">Esqueceu a senha?</a>
+            </div>
+            
+            <button type="submit" class="btn-login">
+                <span class="btn-text">Entrar</span>
+                <i class="fas fa-arrow-right btn-icon"></i>
+            </button>
+        </form>
+        
+        <div class="register-link">
+            Não tem uma conta? <a href="{{ url_for('register') }}">Cadastre-se aqui</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function setGoogleSignupFlag() {
+        // Garante que estamos fazendo cadastro, não login
+        fetch('/set-google-signup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).catch(err => console.error('Error setting signup flag:', err));
+    }
+    // Mostrar/esconder senha
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const icon = document.querySelector('.toggle-password i');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+    
+    // Validação visual dos campos
+    function validateInput(input) {
+        if (input.value.trim() === '') {
+            input.classList.remove('valid', 'invalid');
+        } else if (input.checkValidity()) {
+            input.classList.remove('invalid');
+            input.classList.add('valid');
+        } else {
+            input.classList.remove('valid');
+            input.classList.add('invalid');
+        }
+    }
+    
+    // Efeito de loading no botão
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const btn = document.querySelector('.btn-login');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
+    });
+</script>
+
+{% endblock %}

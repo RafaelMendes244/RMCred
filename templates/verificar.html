@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <title>Redefinir Senha - RMCred</title>
+    <style>
+        :root {
+            --primary: #2a7de1;
+            --success: #28a745;
+            --danger: #dc3545;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .register-container {
+            background-color: white;
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.6s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .logo {
+            color: var(--primary);
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: var(--secondary);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-weight: 500;
+            text-align: left;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(42, 125, 225, 0.1);
+        }
+        
+        .btn-register {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .btn-register:hover {
+            background: #1a6bc8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            color: var(--danger);
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .login-link {
+            text-align: center;
+            margin-top: 25px;
+            color: var(--secondary);
+        }
+        
+        .login-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .hidden {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+        
+        .toggle-senha {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        #password-match {
+            margin-top: 5px;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        #password-strength {
+            margin-top: 5px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="logo">RMCred</div>
+        <div class="subtitle">Redefina sua senha</div>
+        
+        {% if erro %}
+        <div class="alert alert-danger">
+            ❌ {{ erro }}
+        </div>
+        {% endif %}
+        
+        {% if mensagem %}
+        <div class="alert alert-success">
+            ✅ {{ mensagem }}
+        </div>
+        {% endif %}
+
+        <form method="POST" autocomplete="off" id="password-form">
+            <div class="form-group">
+                <label for="codigo">Código de verificação:</label>
+                <input 
+                    type="text" 
+                    id="codigo" 
+                    name="codigo" 
+                    class="form-control"
+                    placeholder="Digite o código recebido" 
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="nova_senha">Nova senha:</label>
+                <div class="password-wrapper">
+                    <input 
+                        type="password" 
+                        id="nova_senha" 
+                        name="nova_senha" 
+                        class="form-control"
+                        placeholder="Mínimo 8 caracteres" 
+                        required
+                        minlength="8"
+                    >
+                    <button type="button" class="toggle-senha" onclick="toggleSenha('nova_senha')">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+                <div id="password-strength"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmar_senha">Confirmar Nova Senha:</label>
+                <div class="password-wrapper">
+                    <input 
+                        type="password" 
+                        id="confirmar_senha" 
+                        name="confirmar_senha" 
+                        class="form-control"
+                        placeholder="Digite a senha novamente" 
+                        required
+                        minlength="8"
+                    >
+                    <button type="button" class="toggle-senha" onclick="toggleSenha('confirmar_senha')">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+                <small id="password-match" style="color: red; display: none;">As senhas não coincidem!</small>
+            </div>
+
+            <button type="submit" class="btn-register">
+                <span id="btn-text">Redefinir Senha</span>
+                <span id="loader" style="display: none;">↻</span>
+            </button>
+        </form>
+        
+        <div class="login-link">
+            <a href="/login">Voltar ao login</a>
+        </div>
+    </div>
+
+    <script>
+        // Mostrar/Esconder Senha
+        function toggleSenha(fieldId) {
+            const input = document.getElementById(fieldId);
+            const icon = input.nextElementSibling.querySelector('i');
+            
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            } else {
+                input.type = "password";
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            }
+        }
+
+        // Validação de força da senha
+        document.getElementById('nova_senha').addEventListener('input', function(e) {
+            const password = e.target.value;
+            const strengthBadge = document.getElementById('password-strength') || createStrengthBadge();
+            const strength = checkPasswordStrength(password);
+            updateStrengthBadge(strengthBadge, strength);
+        });
+
+        // Validação de confirmação de senha
+        document.getElementById('confirmar_senha').addEventListener('input', function() {
+            const password = document.getElementById('nova_senha').value;
+            const confirmPassword = this.value;
+            const matchMessage = document.getElementById('password-match');
+            
+            if (password !== confirmPassword && confirmPassword.length > 0) {
+                matchMessage.style.display = 'block';
+            } else {
+                matchMessage.style.display = 'none';
+            }
+        });
+
+        // Submit handler
+        document.getElementById('password-form').addEventListener('submit', function(e) {
+            const password = document.getElementById('nova_senha').value;
+            const confirmPassword = document.getElementById('confirmar_senha').value;
+            
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                document.getElementById('password-match').style.display = 'block';
+                document.getElementById('confirmar_senha').focus();
+            }
+        });
+
+        // Funções de força da senha
+        function createStrengthBadge() {
+            const badge = document.createElement('div');
+            badge.id = 'password-strength';
+            badge.style.marginTop = '5px';
+            badge.style.fontSize = '0.85rem';
+            document.querySelector('label[for="nova_senha"]').appendChild(badge);
+            return badge;
+        }
+
+        function checkPasswordStrength(password) {
+            if (password.length === 0) return 0;
+            if (password.length < 4) return 1;
+            if (password.length < 8) return 2;
+            if (/[A-Z]/.test(password) && /\d/.test(password)) return 4;
+            return 3;
+        }
+
+        function updateStrengthBadge(badge, strength) {
+            const texts = ['', 'Muito fraca', 'Fraca', 'Boa', 'Forte'];
+            const colors = ['', '#ff4d4d', '#ffa64d', '#66cc66', '#2daf7d'];
+            badge.textContent = strength ? `Força: ${texts[strength]}` : '';
+            badge.style.color = colors[strength] || 'inherit';
+        }
+    </script>
+</body>
+</html>

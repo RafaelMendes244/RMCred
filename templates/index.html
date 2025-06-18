@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMCred - Painel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2a7de1;
+            --secondary: #6c757d;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --danger: #dc3545;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+            color: var(--dark);
+        }
+        
+        .dashboard-header {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-title {
+            font-size: 22px;
+            font-weight: 600;
+        }
+        
+        .user-menu {
+            position: relative;
+        }
+        
+        .menu-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .menu-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            min-width: 250px;
+            padding: 10px 0;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .dropdown-menu.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .menu-section {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .menu-section:last-child {
+            border-bottom: none;
+        }
+        
+        .menu-header {
+            padding: 8px 20px;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .dropdown-menu a {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            color: var(--dark);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .dropdown-menu a:hover {
+            background: var(--light);
+            color: var(--primary);
+        }
+        
+        .dropdown-menu a i {
+            width: 20px;
+            text-align: center;
+            margin-right: 12px;
+            color: var(--secondary);
+        }
+        
+        .dropdown-menu a:hover i {
+            color: var(--primary);
+        }
+        
+        .menu-badge {
+            background: var(--danger);
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .logout-btn {
+            color: var(--danger) !important;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(220, 53, 69, 0.1) !important;
+            color: var(--danger) !important;
+        }
+        
+        .logout-btn i {
+            width: 20px;
+            text-align: center;
+            margin-right: 12px;
+            color: var(--danger);
+        }
+        
+        .dashboard-container {
+            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .welcome-title {
+            font-size: 24px;
+            color: var(--dark);
+            margin-bottom: 10px;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            color: var(--secondary);
+            font-size: 14px;
+        }
+        
+        .actions-title {
+            text-align: center;
+            margin: 30px 0 20px;
+            color: var(--dark);
+            font-size: 20px;
+        }
+        
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .action-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        .action-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+        
+        .action-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+        
+        .action-link {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 20px;
+            background: var(--primary);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .action-link:hover {
+            background: #1a6bc8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn-chat {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--success);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            text-decoration: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+        
+        .btn-chat:hover {
+            background: #218838;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .unread-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Estilos do Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1050;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+            width: 80%;
+            max-width: 900px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            right: 25px;
+            top: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .close-btn:hover {
+            color: var(--danger);
+            transform: scale(1.2);
+        }
+
+        .modal-chart-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .chart-wrapper {
+            background: #f9fafc;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+        
+        .chart-wrapper canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .chart-wrapper h3, .chart-stats h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--dark);
+            font-size: 18px;
+        }
+
+        .chart-stats {
+            background: #f9fafc;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-item span {
+            color: var(--secondary);
+        }
+
+        .stat-item strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .modal-chart-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                width: 90%;
+                margin: 10% auto;
+            }
+            
+            .dropdown-menu {
+                min-width: 220px;
+            }
+        }
+
+        .social-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin: 25px 0;
+        }
+    
+        .social-card {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 10px;
+            padding: 15px 20px;
+            text-decoration: none;
+            color: #333;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 1px solid #eee;
+        }
+    
+        .social-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #2a7de1;
+        }
+    
+        .social-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #e3f2fd;
+            color: #2a7de1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+    
+        .social-content {
+            flex: 1;
+        }
+    
+        .social-content h3 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+        }
+    
+        .social-content p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+    
+        .arrow {
+            color: #999;
+            font-size: 14px;
+            margin-left: 15px;
+        }
+    
+        .badge {
+            display: inline-block;
+            background: #e74c3c;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    
+        @media (max-width: 768px) {
+            .social-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+                margin-right: 15px;
+            }
+            
+            .social-content h3 {
+                font-size: 16px;
+            }
+        }
+
+        .social-actions {
+            margin: 25px 30px;
+        }
+        
+        .social-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        
+        .social-card {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-decoration: none;
+            color: #333;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 1px solid #eee;
+            min-height: 80px;
+        }
+        
+        .social-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #2a7de1;
+        }
+        
+        .social-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e3f2fd;
+            color: #2a7de1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .social-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .social-content h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .social-content p {
+            margin: 0;
+            color: #666;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .arrow {
+            color: #999;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: #e74c3c;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .social-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .social-card {
+                padding: 12px;
+            }
+        }
+
+
+/* Botão flutuante de suporte */
+
+#suporte-botao {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background-color: #2a7de1;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 999;
+}
+
+#chatbot-container {
+    position: fixed;
+    bottom: 80px;
+    left: 20px;
+    width: 280px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    display: none;
+    flex-direction: column;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    font-family: Arial, sans-serif;
+}
+
+#chatbot-header {
+    background: #2a7de1;
+    color: white;
+    padding: 10px;
+    border-radius: 8px 8px 0 0;
+    font-weight: bold;
+}
+
+#chatbot-mensagens {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px;
+    font-size: 14px;
+}
+
+#chatbot-input {
+    border: none;
+    border-top: 1px solid #ccc;
+    padding: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.bot {
+    background: #f1f1f1;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+}
+</style>
+</head>
+<body>
+
+    <header class="dashboard-header">
+        <div class="header-title">RMCred - Painel do Administrador</div>
+        <div class="user-menu">
+            <button class="menu-btn" onclick="toggleMenu()">
+                <i class="fas fa-user-circle"></i> {{ usuario }}
+            </button>
+            <div class="dropdown-menu" id="dropdownMenu">
+                <div class="menu-section">
+                    <div class="menu-header">
+                        <i class="fas fa-user"></i> Minha Conta
+                    </div>
+                    <a href="{{ url_for('editar_perfil') }}"><i class="fas fa-user-edit"></i> Perfil</a>
+                    <a href="{{ url_for('configuracoes_conta') }}"><i class="fas fa-cog"></i> Configurações</a>
+                </div>
+                
+                <div class="menu-section">
+                    <div class="menu-header">
+                        <i class="fas fa-hand-holding-usd"></i> Empréstimos
+                    </div>
+                    <a href="{{ url_for('simular') }}"><i class="fas fa-calculator"></i> Simular</a>
+                    <a href="{{ url_for('ver_solicitacoes') }}"><i class="fas fa-inbox"></i> Solicitações</a>
+                    <a href="{{ url_for('aprovacoes') }}"><i class="fas fa-check-circle"></i> Aprovações</a>
+                    <a href="{{ url_for('emprestimos') }}"><i class="fas fa-list"></i> Ativos</a>
+                    <a href="{{ url_for('emprestimos_finalizados') }}"><i class="fas fa-check-square"></i> Finalizados</a>
+                </div>
+                
+                <div class="menu-section">
+                    <div class="menu-header">
+                        <i class="fas fa-chart-line"></i> Relatórios
+                    </div>
+                    <a href="{{ url_for('gerar_pdf') }}"><i class="fas fa-file-pdf"></i> Gerar PDF</a>
+                    <a href="#" onclick="openChartModal()"><i class="fas fa-chart-pie"></i> Gráficos</a>
+                </div>
+                
+                <div class="menu-section">
+                    <div class="menu-header">
+                        <i class="fas fa-users"></i> Rede
+                    </div>
+                    <a href="{{ url_for('ver_amigos') }}"><i class="fas fa-user-friends"></i> Ver Amigos</a>
+                    <a href="{{ url_for('buscar_usuario') }}"><i class="fas fa-search"></i> Buscar Usuários</a>
+                    <a href="{{ url_for('solicitacoes_amizade') }}">
+                        <i class="fas fa-user-friends"></i> Solicitações
+                        {% if solicitacoes_amizade > 0 %}
+                        <span class="menu-badge">{{ solicitacoes_amizade }}</span>
+                        {% endif %}
+                    </a>
+                </div>
+                <div class="menu-section">
+                    <a href="{{ url_for('logout') }}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                    </a>
+                </div> 
+            </div>       
+        </div>
+    </header>
+
+    <div class="social-actions">
+        <div class="social-grid">
+            <a href="{{ url_for('buscar_usuario') }}" class="social-card">
+                <div class="social-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="social-content">
+                    <h3>Buscar Usuários</h3>
+                    <p>Encontre novos contatos</p>
+                </div>
+                <i class="fas fa-chevron-right arrow"></i>
+            </a>
+    
+            <a href="{{ url_for('solicitacoes_amizade') }}" class="social-card">
+                <div class="social-icon" style="background-color: #f8e3c5; color: #e67e22;">
+                    <i class="fas fa-user-friends"></i>
+                </div>
+                <div class="social-content">
+                    <h3>Solicitações de Amizade</h3>
+                    <p>Pedidos de conexão</p>
+                    {% if solicitacoes_amizade > 0 %}
+                    <span class="badge">{{ solicitacoes_amizade }} nova(s)</span>
+                    {% endif %}
+                </div>
+                <i class="fas fa-chevron-right arrow"></i>
+            </a>
+    
+            <a href="{{ url_for('ver_amigos') }}" class="social-card">
+                <div class="social-icon" style="background-color: #e0f2e9; color: #2ecc71;">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="social-content">
+                    <h3>Ver Amigos</h3>
+                    <p>Sua rede de contatos</p>
+                </div>
+                <i class="fas fa-chevron-right arrow"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="dashboard-container">
+        <div class="welcome-section">
+            <h1 class="welcome-title">Bem-vindo, {{ usuario }} 👋</h1>
+            {% if vencendo > 0 %}
+            <div class="alert-warning">
+                ⚠️ Você tem {{ vencendo }} empréstimo(s) vencendo nos próximos dias!
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-label">Empréstimos Ativos</div>
+                <div class="stat-value">{{ qtd }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Emprestado</div>
+                <div class="stat-value">R$ {{ valor_total }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total a Receber</div>
+                <div class="stat-value">R$ {{ total_com_juros }}</div>
+            </div>
+        </div>
+
+        <h2 class="actions-title">Ações Rápidas</h2>
+        <div class="actions-grid">
+            <div class="action-card" onclick="window.location.href='{{ url_for('simular') }}'">
+                <div class="action-icon">📊</div>
+                <h3 class="action-title">Simular Empréstimo</h3>
+                <div class="action-link">Acessar</div>
+            </div>
+            <div class="action-card" onclick="window.location.href='{{ url_for('aprovacoes') }}'">
+                <div class="action-icon">📝</div>
+                <h3 class="action-title">Aprovações</h3>
+                <div class="action-link">Acessar</div>
+            </div>
+            <div class="action-card" onclick="window.location.href='{{ url_for('ver_solicitacoes') }}'">
+                <div class="action-icon">📥</div>
+                <h3 class="action-title">Solicitações</h3>
+                <div class="action-link">Ver Solicitações</div>
+            </div>
+            <div class="action-card" onclick="window.location.href='{{ url_for('emprestimos') }}'">
+                <div class="action-icon">💼</div>
+                <h3 class="action-title">Empréstimos Ativos</h3>
+                <div class="action-link">Visualizar</div>
+            </div>
+            <div class="action-card" onclick="window.location.href='{{ url_for('emprestimos_finalizados') }}'">
+                <div class="action-icon">✅</div>
+                <h3 class="action-title">Finalizados</h3>
+                <div class="action-link">Visualizar</div>
+            </div>
+            <div class="action-card" onclick="window.location.href='{{ url_for('gerar_pdf') }}'">
+                <div class="action-icon">📄</div>
+                <h3 class="action-title">Baixar Relatório</h3>
+                <div class="action-link">Download</div>
+            </div>
+            <div class="action-card" onclick="openChartModal()">
+                <div class="action-icon">📈</div>
+                <h3 class="action-title">Ver Gráficos</h3>
+                <div class="action-link">Visualizar</div>
+            </div>
+        </div>
+
+        <a href="{{ url_for('lista_usuarios_para_conversar') }}" class="btn-chat">
+            💬 Conversar com Usuários
+            {% if unread_count and unread_count > 0 %}
+            <span class="unread-badge">
+                {% if unread_count > 9 %}9+{% else %}{{ unread_count }}{% endif %}
+            </span>
+            {% endif %}
+        </a>
+    </div>
+
+
+    <div id="suporte-botao" onclick="abrirChatBot()">
+    💬 Suporte
+</div>
+
+<div id="chatbot-container">
+    <div id="chatbot-header">Atendimento RMCred</div>
+    <div id="chatbot-mensagens">
+    </div>
+    <input type="text" id="chatbot-input" placeholder="Digite sua pergunta..." onkeypress="if(event.key === 'Enter') enviarMensagemBot()">
+</div>
+
+    <div id="chartModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeChartModal()">&times;</span>
+            <h2 style="text-align: center; margin-bottom: 20px; color: var(--primary);">
+                📊 Estatísticas Detalhadas
+            </h2>
+            
+            <div class="modal-chart-container">
+                <div class="chart-wrapper">
+                    <h3>Empréstimos por Status</h3>
+                    <canvas id="statusChart"></canvas>
+                </div>
+                
+                <div class="chart-stats">
+                    <h3>Resumo Estatístico</h3>
+                    <div class="stat-item">
+                        <span>Total de Empréstimos:</span>
+                        <strong>{{ qtd }}</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Valor Total:</span>
+                        <strong>R$ {{ valor_total }}</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Total a Receber:</span>
+                        <strong>R$ {{ total_com_juros }}</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Vencendo em breve:</span>
+                        <strong>{{ vencendo }} empréstimo(s)</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const currentUser = "{{ session['user'] }}";
+        
+        // Conectar o usuário a uma sala pessoal para notificações
+        socket.on('connect', () => {
+            socket.emit('registrar_usuario', { user: currentUser });
+        });
+        
+        // Atualizar contagem de mensagens não lidas
+        socket.on('atualizar_contagem', (data) => {
+            const badge = document.querySelector('.unread-badge');
+            const btnChat = document.querySelector('.btn-chat');
+            
+            if (data.count > 0) {
+                if (!badge) {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'unread-badge';
+                    newBadge.textContent = data.count;
+                    btnChat.appendChild(newBadge);
+                } else {
+                    badge.textContent = data.count;
+                }
+            } else if (badge) {
+                badge.remove();
+            }
+        });
+        
+        // Atualizar contagem periodicamente (fallback)
+        function atualizarContagem() {
+            fetch('/mensagens/nao-lidas')
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.querySelector('.unread-badge');
+                    const btnChat = document.querySelector('.btn-chat');
+                    
+                    if (data.count > 0) {
+                        if (!badge) {
+                            const newBadge = document.createElement('span');
+                            newBadge.className = 'unread-badge';
+                            newBadge.textContent = data.count;
+                            btnChat.appendChild(newBadge);
+                        } else {
+                            badge.textContent = data.count;
+                        }
+                    } else if (badge) {
+                        badge.remove();
+                    }
+                });
+        }
+        
+        // Atualizar a cada 30 segundos (apenas como fallback)
+        setInterval(atualizarContagem, 30000);
+        atualizarContagem(); // Executar imediatamente ao carregar
+
+        // Função toggleMenu
+        function toggleMenu() {
+            document.getElementById('dropdownMenu').classList.toggle('show');
+        }
+        
+        // Fechar menu ao clicar fora
+        window.onclick = function(event) {
+            const modal = document.getElementById('chartModal');
+            if (event.target === modal) {
+                closeChartModal();
+            }
+            
+            if (!event.target.closest('.user-menu')) {
+                var dropdowns = document.getElementsByClassName("dropdown-menu");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+        
+        // Variável global para o gráfico
+        let statusChart = null;
+
+        // Funções do Modal
+        function openChartModal() {
+            document.getElementById('chartModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            renderChart();
+        }
+
+        function closeChartModal() {
+            document.getElementById('chartModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            
+            // Destruir gráfico ao fechar o modal
+            if (statusChart) {
+                statusChart.destroy();
+                statusChart = null;
+            }
+        }
+
+        // Renderização do gráfico com fallback
+        function renderChart() {
+            const ctx = document.getElementById('statusChart');
+            
+            // Destruir gráfico existente se houver
+            if (statusChart) {
+                statusChart.destroy();
+            }
+            
+            // Verificar se existem dados para renderizar
+            if (!ctx) {
+                console.error('Elemento canvas não encontrado');
+                return;
+            }
+
+            const ctx2d = ctx.getContext('2d');
+            
+            // Dados padrão caso não existam dados do backend
+            const defaultLabels = ['Ativos', 'Aprovados', 'Finalizados', 'Atrasados'];
+            const defaultValues = [0, 0, 0, 0];
+            
+            // Obter dados do template ou usar padrão
+            const labels = {{ status_labels | tojson | safe }} || defaultLabels;
+            const values = {{ status_values | tojson | safe }} || defaultValues;
+            
+            // Criar o gráfico
+            statusChart = new Chart(ctx2d, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Quantidade',
+                        data: values,
+                        backgroundColor: [
+                            'rgba(42, 125, 225, 0.8)',
+                            'rgba(40, 167, 69, 0.8)',
+                            'rgba(255, 193, 7, 0.8)',
+                            'rgba(220, 53, 69, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(42, 125, 225, 1)',
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(255, 193, 7, 1)',
+                            'rgba(220, 53, 69, 1)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barThickness: 40
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            cornerRadius: 6,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw}`;
+                                }
+                            }
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            top: 20,
+                            right: 20,
+                            bottom: 20,
+                            left: 20
+                        }
+                    },
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
+                }
+            });
+
+            // Adicionar mensagem se não houver dados
+            if (values.every(v => v === 0)) {
+                ctx2d.fillStyle = '#f5f5f5';
+                ctx2d.fillRect(0, 0, ctx.width, ctx.height);
+                ctx2d.fillStyle = '#666';
+                ctx2d.textAlign = 'center';
+                ctx2d.font = '16px Arial';
+                ctx2d.fillText('Nenhum dado disponível para exibição', ctx.width/2, ctx.height/2);
+            }
+        }
+
+
+        // Função para abrir o chat de suporte
+
+function abrirChatBot() {
+    const chat = document.getElementById('chatbot-container');
+    const mensagens = document.getElementById('chatbot-mensagens');
+    
+    chat.style.display = chat.style.display === 'none' || !chat.style.display ? 'flex' : 'none';
+
+    // Se o chatbot for aberto, exibe a mensagem de boas-vindas
+    if (chat.style.display === 'flex' && mensagens.children.length === 0) {
+        exibirMensagemBot('Olá! Sou o assistente virtual da RMCred. Como posso ajudar você hoje?');
+        exibirMensagemBot('Posso responder perguntas sobre:');
+        exibirMensagemBot('1. Empréstimos (como funcionam, aprovação, etc.)');
+        exibirMensagemBot('2. Gerenciamento de conta (perfil, configurações, senha)');
+        exibirMensagemBot('3. Relatórios e estatísticas');
+        exibirMensagemBot('4. Suporte técnico ou contato com um atendente');
+        exibirMensagemBot('Por favor, digite o número da opção ou sua pergunta.');
+    }
+}
+
+function exibirMensagemBot(texto) {
+    const mensagens = document.getElementById('chatbot-mensagens');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'bot';
+    msgDiv.innerText = texto;
+    mensagens.appendChild(msgDiv);
+    mensagens.scrollTop = mensagens.scrollHeight;
+}
+
+function enviarMensagemBot() {
+    const input = document.getElementById('chatbot-input');
+    const userMessage = input.value.trim().toLowerCase();
+
+    if (userMessage === '') return;
+
+    const mensagens = document.getElementById('chatbot-mensagens');
+
+    const userMsgDiv = document.createElement('div');
+    userMsgDiv.className = 'bot'; // Reusing 'bot' class for user messages, but with a different background
+    userMsgDiv.style.background = '#d1ecf1';
+    userMsgDiv.innerText = input.value;
+    mensagens.appendChild(userMsgDiv);
+
+    let botResponse = '';
+
+    if (userMessage.includes('olá') || userMessage.includes('oi') || userMessage.includes('ajuda')) {
+        botResponse = 'Olá! Como posso ajudar você? Posso falar sobre empréstimos, gerenciamento de conta, relatórios ou suporte.';
+    } else if (userMessage.includes('1') || userMessage.includes('empréstimo') || userMessage.includes('funcionam') || userMessage.includes('aprovação')) {
+        botResponse = 'Sobre empréstimos, aqui estão algumas opções:\n\n' +
+                      '- **Como funcionam os empréstimos?** Nossos empréstimos são negociados diretamente com outros usuários. Você simula, solicita e, se aprovado, recebe o valor. O pagamento inclui juros pré-definidos.\n' +
+                      '- **Como aprovo uma solicitação?** Você pode ver e aprovar solicitações na seção "Aprovações" do seu painel.\n' +
+                      '- **Ver empréstimos ativos:** Acesse a seção "Empréstimos Ativos" para acompanhar os empréstimos que você concedeu.\n' +
+                      'Posso detalhar algum desses pontos?';
+    } else if (userMessage.includes('2') || userMessage.includes('conta') || userMessage.includes('perfil') || userMessage.includes('configurações') || userMessage.includes('senha')) {
+        botResponse = 'Para gerenciamento da sua conta, você pode:\n\n' +
+                      '- **Editar seu perfil:** Acesse "Minha Conta > Perfil" para atualizar seus dados.\n' +
+                      '- **Configurações da conta:** Em "Minha Conta > Configurações", você pode ajustar preferências.\n' +
+                      '- **Esqueci minha senha:** Se você esqueceu sua senha, clique em "Sair" e na tela de login use a opção "Esqueci minha senha" para redefinir.';
+    } else if (userMessage.includes('3') || userMessage.includes('relatórios') || userMessage.includes('gráficos') || userMessage.includes('estatísticas')) {
+        botResponse = 'Na seção de relatórios e estatísticas, você pode:\n\n' +
+                      '- **Gerar PDFs:** Clique em "Relatórios > Gerar PDF" para exportar dados.\n' +
+                      '- **Ver gráficos:** Acessar "Relatórios > Gráficos" mostra estatísticas visuais dos empréstimos.';
+    } else if (userMessage.includes('4') || userMessage.includes('suporte') || userMessage.includes('atendente') || userMessage.includes('falar')) {
+        botResponse = 'Entendido. Para falar com um atendente, por favor, envie um e-mail para suporte@rmcred.com ou descreva sua questão detalhadamente aqui e um de nossos especialistas responderá assim que possível.';
+    } else if (userMessage.includes('obrigado') || userMessage.includes('valeu')) {
+        botResponse = 'De nada! Fico feliz em ajudar. Se precisar de mais alguma coisa, é só perguntar.';
+    }
+    else {
+        botResponse = 'Desculpe, não entendi sua pergunta. Por favor, tente reformular ou escolha uma das opções a seguir:\n\n' +
+                    '1. Perguntas sobre Empréstimos\n' +
+                    '2. Gerenciamento da minha Conta\n' +
+                    '3. Relatórios e Gráficos\n' +
+                    '4. Falar com Suporte';
+    }
+
+    exibirMensagemBot(botResponse);
+    input.value = '';
+}
+    </script>
+</body>
+</html>

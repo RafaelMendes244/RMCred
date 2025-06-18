@@ -1,0 +1,7 @@
+Flask
+Flask-Dance
+Flask-SocketIO
+python-dotenv
+bcrypt
+reportlab
+gunicorn

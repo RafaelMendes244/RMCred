@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+
+# Banco de dados local
+*.db
+*.sqlite3
+database/
+
+# Configurações e chaves
+.env
+
+# Virtual env
+venv/
+env/
+
+# Cache ou arquivos temporários
+*.log
+*.tmp
+*.bak
+
+# VSCode, PyCharm e outros editores
+.vscode/
+.idea/

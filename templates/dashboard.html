@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<style>
+    :root {
+        --primary: #2a7de1;
+        --secondary: #6c757d;
+        --light: #f8f9fa;
+        --dark: #343a40;
+    }
+    
+    .dashboard-container {
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .welcome-title {
+        color: var(--primary);
+        font-size: 28px;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-top: 30px;
+    }
+    
+    .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #1a6bc8;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .btn-secondary {
+        background: var(--light);
+        color: var(--dark);
+        border: 1px solid #ddd;
+    }
+    
+    .btn-secondary:hover {
+        background: #e9ecef;
+        transform: translateY(-2px);
+    }
+    
+    .btn-logout {
+        background: #f8f9fa;
+        color: #dc3545;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .btn-logout:hover {
+        background: #f8d7da;
+    }
+    
+    .user-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        font-weight: bold;
+        margin: 0 auto 20px;
+    }
+</style>
+
+<div class="dashboard-container">
+    {% if user %}
+    <div class="user-avatar">
+        {{ user[0] | upper }} <!-- Mostra a primeira letra do nome -->
+    </div>
+    {% endif %}
+    
+    <h1 class="welcome-title">Bem-vindo, {{ user }}</h1>
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('simular') }}" class="btn btn-primary">
+            <span>📊</span> Simular novo empréstimo
+        </a>
+        <a href="{{ url_for('emprestimos') }}" class="btn btn-secondary">
+            <span>💼</span> Ver empréstimos ativos
+        </a>
+        <a href="{{ url_for('emprestimos_finalizados') }}" class="btn btn-secondary">
+            <span>✅</span> Ver empréstimos finalizados
+        </a>
+        <a href="{{ url_for('logout') }}" class="btn btn-logout">
+            <span>🚪</span> Sair
+        </a>
+    </div>
+</div>
+{% endblock %}

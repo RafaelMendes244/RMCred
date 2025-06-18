@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}Buscar Amigos{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="header-actions">
+        <a href="{{ url_for('painel' if session.get('tipo') == 'emprestador' else 'painel_solicitante') }}" 
+        class="btn-voltar">
+            <i class="fas fa-arrow-left"></i> Voltar ao painel
+        </a>
+    </div>
+    
+    <h2><i class="fas fa-search"></i> Buscar usuários</h2>
+    
+    <form method="POST" class="search-form">
+        <div class="form-group">
+            <input type="text" 
+            name="termo" 
+            placeholder="Digite o nome ou ID" 
+            required 
+            class="form-input">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+        </div>
+    </form>
+
+    {% if resultados %}
+        <div class="results-container">
+            <h3>Resultados encontrados:</h3>
+            <ul class="results-list">
+                {% for r in resultados %}
+                <li class="result-item">
+                    <span>{{ r }}</span>
+                    <a href="{{ url_for('adicionar_amigo', nome=r) }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-user-plus"></i> Adicionar
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .header-actions {
+        margin-bottom: 20px;
+    }
+    
+    .btn-voltar {
+        background: #6c757d;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+    
+    .btn-voltar:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+    
+    .search-form {
+        margin-bottom: 30px;
+    }
+    
+    .form-group {
+        display: flex;
+        gap: 10px;
+        max-width: 600px; /* Largura máxima do conjunto */
+        margin: 0 auto; /* Centraliza */
+    }
+    
+    .form-input {
+        flex: 1; /* Ocupa todo espaço disponível */
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        min-width: 200px; /* Largura mínima */
+        transition: all 0.3s;
+    }
+    
+    .results-container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .results-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .result-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .result-item:last-child {
+        border-bottom: none;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-primary {
+        padding: 12px 20px; /* Tamanho proporcional ao input */
+        white-space: nowrap; /* Evita quebra de texto */
+        background-color: #2a7de1;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #1a6dcc;
+    }
+    
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background-color: #218838;
+    }
+    
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+
+    .form-input:focus {
+        border-color: #2a7de1;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(42, 125, 225, 0.2);
+    }
+
+    @media (min-width: 768px) {
+        .form-input {
+            min-width: 300px; /* Mais espaço para digitar */
+        }
+    }
+
+    /* Ajuste para mobile */
+    @media (max-width: 480px) {
+        .form-group {
+            flex-direction: column;
+        }
+        
+        .form-input, .btn-primary {
+            width: 100%;
+        }
+        
+        .form-input {
+            margin-bottom: 10px;
+        }
+    }
+</style>
+{% endblock %}
