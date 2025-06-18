@@ -856,7 +856,10 @@ def verificar_cadastro():
         if datetime.now().timestamp() > cadastro['expira']:
             return render_template('verificar_cadastro.html', erro="⏰ Código expirado. Refaça o cadastro.")
 
-        if codigo_digitado != cadastro['codigo']:
+        if not codigo_digitado.isdigit() or len(codigo_digitado) != 6:
+            return render_template('verificar_cadastro.html', erro="O código deve conter 6 dígitos numéricos.")
+        # Verifica se o código digitado corresponde ao código salvo na sessão
+        if codigo_digitado != str(cadastro['codigo']):
             return render_template('verificar_cadastro.html', erro="❌ Código incorreto. Tente novamente.")
 
         # Código correto, salva o usuário
