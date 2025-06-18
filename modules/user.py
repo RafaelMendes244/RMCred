@@ -13,6 +13,8 @@ def create_user_table():
         tipo TEXT,
         celular TEXT,
         endereco TEXT,
+        cpf TEXT,
+        data_nascimento TEXT,
         data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
     conn.commit()
