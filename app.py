@@ -15,6 +15,8 @@ import smtplib
 from email.mime.text import MIMEText
 import hashlib
 
+os.makedirs('database', exist_ok=True)
+
 # Módulos internos
 from modules.user import (
     create_user_table, create_solicitacoes_table, register_user, login_user, create_loans_table,
