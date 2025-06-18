@@ -6,3 +6,4 @@ gunicorn
 python-dotenv
 bcrypt
 reportlab
+python-3.10.13

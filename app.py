@@ -1751,3 +1751,6 @@ def criar_banco_e_tabelas():
 
 # Chama a função sempre que o app iniciar
 criar_banco_e_tabelas()
+
+if __name__ == '__main__':
+    socketio.run(app, host='0.0.0.0', port=5000)
