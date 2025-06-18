@@ -28,11 +28,15 @@ from modules.user import (
     create_user_status_table
 )
 
+import eventlet
+eventlet.monkey_patch()
+
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
-socketio = SocketIO(app, cors_allowed_origins="*")
+
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 @app.route('/mensagens/nao-lidas')
 def contar_mensagens_nao_lidas():
@@ -1747,8 +1751,3 @@ def criar_banco_e_tabelas():
 
 # Chama a função sempre que o app iniciar
 criar_banco_e_tabelas()
-
-if __name__ == '__main__':
-    import eventlet
-    eventlet.monkey_patch()
-    socketio.run(app, host='0.0.0.0', port=5000)

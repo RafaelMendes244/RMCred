@@ -1,8 +1,8 @@
 Flask
 Flask-Dance
 Flask-SocketIO
+eventlet==0.33.3
+gunicorn
 python-dotenv
 bcrypt
 reportlab
-gunicorn
-eventlet

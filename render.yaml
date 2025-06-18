@@ -3,7 +3,7 @@ services:
     name: rmcred
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn app:app --worker-class eventlet -w 1
     autoDeploy: true
     envVars:
       - key: SECRET_KEY
