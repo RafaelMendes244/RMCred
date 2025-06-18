@@ -28,6 +28,7 @@ def create_messages_table():
         destinatario TEXT NOT NULL,
         mensagem TEXT NOT NULL,
         data_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
+        lida INTEGER DEFAULT 0,
         FOREIGN KEY (remetente) REFERENCES usuarios(nome),
         FOREIGN KEY (destinatario) REFERENCES usuarios(nome)
     )
@@ -48,6 +49,7 @@ def create_user_table():
         endereco TEXT,
         cpf TEXT,
         data_nascimento TEXT,
+        is_google INTEGER DEFAULT 0,
         data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
     conn.commit()
@@ -67,7 +69,8 @@ def create_loans_table():
         status TEXT DEFAULT 'pendente',
         cliente TEXT,
         pago INTEGER DEFAULT 0,
-        renovacoes INTEGER DEFAULT 0
+        renovacoes INTEGER DEFAULT 0,
+        observacoes TEXT
     )''')
     conn.commit()
     conn.close()
@@ -91,7 +94,55 @@ def create_solicitacoes_table():
     conn.commit()
     conn.close()
 
-def register_user(nome, email, senha, tipo, celular=None, endereco=None):
+def create_user_table():
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS usuarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        senha TEXT NOT NULL,
+        tipo TEXT,
+        celular TEXT,
+        endereco TEXT,
+        cpf TEXT,
+        data_nascimento TEXT,
+        data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_google INTEGER DEFAULT 0
+    )''')
+    conn.commit()
+    conn.close()
+
+def atualizar_tabelas_existentes():
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+    
+    # Adicionar coluna 'lida' na tabela mensagens se não existir
+    cursor.execute("PRAGMA table_info(mensagens)")
+    colunas = [col[1] for col in cursor.fetchall()]
+    if 'lida' not in colunas:
+        cursor.execute("ALTER TABLE mensagens ADD COLUMN lida INTEGER DEFAULT 0")
+    
+    # Adicionar coluna 'data_criacao' na tabela solicitacoes se não existir
+    cursor.execute("PRAGMA table_info(solicitacoes)")
+    colunas = [col[1] for col in cursor.fetchall()]
+    if 'data_criacao' not in colunas:
+        cursor.execute("ALTER TABLE solicitacoes ADD COLUMN data_criacao TEXT DEFAULT CURRENT_TIMESTAMP")
+    
+    # Adicionar colunas faltantes na tabela usuarios
+    cursor.execute("PRAGMA table_info(usuarios)")
+    colunas = [col[1] for col in cursor.fetchall()]
+    if 'cpf' not in colunas:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN cpf TEXT")
+    if 'data_nascimento' not in colunas:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN data_nascimento TEXT")
+    if 'is_google' not in colunas:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN is_google INTEGER DEFAULT 0")
+    
+    conn.commit()
+    conn.close()
+
+def register_user(nome, email, senha, tipo, celular=None, endereco=None, cpf=None, data_nascimento=None, is_google=False):
     conn = sqlite3.connect('database/finflow.db')
     cursor = conn.cursor()
 
@@ -104,9 +155,9 @@ def register_user(nome, email, senha, tipo, celular=None, endereco=None):
     senha_hashed = hashlib.sha256(senha.encode()).hexdigest()
 
     cursor.execute("""
-        INSERT INTO usuarios (nome, email, senha, tipo, celular, endereco)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (nome, email, senha_hashed, tipo, celular, endereco))
+        INSERT INTO usuarios (nome, email, senha, tipo, celular, endereco, cpf, data_nascimento, is_google)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (nome, email, senha_hashed, tipo, celular, endereco, cpf, data_nascimento, 1 if is_google else 0))
 
     conn.commit()
     conn.close()
@@ -297,5 +348,24 @@ def create_user_status_table():
             ultima_vez TEXT
         )
     """)
+    conn.commit()
+    conn.close()
+
+def verificar_e_adicionar_colunas_usuario():
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+    
+    cursor.execute("PRAGMA table_info(usuarios)")
+    colunas = [col[1] for col in cursor.fetchall()]
+    
+    if 'data_nascimento' not in colunas:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN data_nascimento TEXT")
+    
+    if 'cpf' not in colunas:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN cpf TEXT")
+    
+    if 'is_google' not in colunas:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN is_google INTEGER DEFAULT 0")
+    
     conn.commit()
     conn.close()

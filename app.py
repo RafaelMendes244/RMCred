@@ -19,7 +19,8 @@ os.makedirs('database', exist_ok=True)
 
 # Módulos internos
 from modules.user import (
-    create_messages_table, create_amigos_table, create_user_table, create_solicitacoes_table, register_user, login_user, create_loans_table,
+    create_messages_table, create_amigos_table, create_user_table, create_solicitacoes_table, 
+    register_user, login_user, create_loans_table, verificar_e_adicionar_colunas_usuario,
     salvar_emprestimo, listar_emprestimos_ativos, listar_emprestimos_finalizados,
     pagar_juros, quitar_emprestimo, listar_emprestimos_pendentes,
     emprestimos_vencendo, verificar_e_adicionar_coluna_status,
@@ -1742,6 +1743,7 @@ def criar_banco_e_tabelas():
     verificar_e_adicionar_coluna_observacoes()
     create_user_status_table()
     adicionar_coluna_lida()
+    verificar_e_adicionar_colunas_usuario()  # Adicione esta linha
 
 # Chama a função sempre que o app iniciar
 criar_banco_e_tabelas()
