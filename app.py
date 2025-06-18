@@ -19,7 +19,7 @@ os.makedirs('database', exist_ok=True)
 
 # Módulos internos
 from modules.user import (
-    create_amigos_table, create_user_table, create_solicitacoes_table, register_user, login_user, create_loans_table,
+    create_messages_table, create_amigos_table, create_user_table, create_solicitacoes_table, register_user, login_user, create_loans_table,
     salvar_emprestimo, listar_emprestimos_ativos, listar_emprestimos_finalizados,
     pagar_juros, quitar_emprestimo, listar_emprestimos_pendentes,
     emprestimos_vencendo, verificar_e_adicionar_coluna_status,
@@ -1732,6 +1732,7 @@ def remover_amigo(nome):
 
 def criar_banco_e_tabelas():
     create_amigos_table()
+    create_messages_table()
     create_user_table()
     create_loans_table()
     create_solicitacoes_table()

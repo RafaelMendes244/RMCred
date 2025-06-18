@@ -18,6 +18,23 @@ def create_amigos_table():
     conn.commit()
     conn.close()
 
+def create_messages_table():
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS mensagens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        remetente TEXT NOT NULL,
+        destinatario TEXT NOT NULL,
+        mensagem TEXT NOT NULL,
+        data_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (remetente) REFERENCES usuarios(nome),
+        FOREIGN KEY (destinatario) REFERENCES usuarios(nome)
+    )
+    ''')
+    conn.commit()
+    conn.close()
+
 def create_user_table():
     conn = sqlite3.connect('database/finflow.db')
     cursor = conn.cursor()
