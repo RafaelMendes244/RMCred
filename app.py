@@ -13,54 +13,51 @@ import re
 import random
 import smtplib
 from email.mime.text import MIMEText
-import hashlib
-
-os.makedirs('database', exist_ok=True)
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
 
 # Módulos internos
 from modules.user import (
-    create_messages_table, create_amigos_table, create_user_table, create_solicitacoes_table, 
-    register_user, login_user, create_loans_table, verificar_e_adicionar_colunas_usuario,
-    salvar_emprestimo, listar_emprestimos_ativos, listar_emprestimos_finalizados,
-    pagar_juros, quitar_emprestimo, listar_emprestimos_pendentes,
-    emprestimos_vencendo, verificar_e_adicionar_coluna_status,
-    verificar_e_adicionar_coluna_cliente, verificar_e_adicionar_coluna_renovacoes,
-    create_user_status_table
+    create_tables,
+    register_user,
+    login_user,
+    buscar_usuario_por_email,
+    # Funções de empréstimos
+    salvar_emprestimo,
+    listar_emprestimos_ativos,
+    listar_emprestimos_pendentes,
+    listar_emprestimos_finalizados,
+    listar_todos_emprestimos,
+    aprovar_emprestimo,
+    rejeitar_emprestimo,
+    pagar_juros,
+    quitar_emprestimo,
+    deletar_emprestimo,
+    emprestimos_vencendo,
+    # Funções de solicitações
+    listar_solicitacoes_pendentes,
+    # Funções de amigos
+    get_amigos
 )
 
+# Configuração inicial
+os.makedirs('database', exist_ok=True)
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
-
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
-@app.route('/mensagens/nao-lidas')
-def contar_mensagens_nao_lidas():
-    if 'user' not in session:
-        return jsonify({'count': 0})
-    
-    user = session['user']
-    try:
-        conn = sqlite3.connect('database/finflow.db')
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT COUNT(*) FROM mensagens 
-            WHERE destinatario = ? AND lida = 0
-        """, (user,))
-        
-        count = cursor.fetchone()[0]
-        return jsonify({'count': count})
-        
-    except Exception as e:
-        print(f"Erro ao contar mensagens não lidas: {e}")
-        return jsonify({'count': 0})
-        
-    finally:
-        conn.close()
+# Cria todas as tabelas necessárias ao iniciar
+create_tables()
 
-# Página inicial
+# ==============================================
+# ROTAS BÁSICAS E AUTENTICAÇÃO
+# ==============================================
+
 @app.route('/')
 def home():
     if 'user' in session:
@@ -73,71 +70,6 @@ def dashboard():
         return redirect(url_for('login'))
     return render_template('dashboard.html', user=session['user'])
 
-# Painel principal com gráfico
-@app.route('/painel')
-def painel():
-    if session.get('tipo') == 'solicitante':
-        return render_template('painel_solicitante.html', usuario=session['user'])
-
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
-
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-
-    # Consultar solicitações de amizade pendentes
-    cursor.execute("""
-        SELECT COUNT(*) FROM amigos
-        WHERE amigo = ? AND status = 'pendente'
-    """, (session['user'],))
-    solicitacoes_amizade = cursor.fetchone()[0]
-
-    # Totais de empréstimos aprovados
-    cursor.execute("SELECT COUNT(*), SUM(valor), SUM(total) FROM loans WHERE nome = ? AND pago = 0 AND status = 'aprovado'", (session['user'],))
-    qtd, valor_total, total_com_juros = cursor.fetchone()
-
-    # Empréstimos por status
-    cursor.execute("SELECT status, COUNT(*) FROM loans WHERE nome = ? GROUP BY status", (session['user'],))
-    status_data = cursor.fetchall()
-    conn.close()
-
-    # Preparar dados para gráfico
-    todos_status = ['pendente', 'aprovado', 'quitado']
-    status_dict = {row[0]: row[1] for row in status_data}
-
-    status_labels = []
-    status_values = []
-    status_colors = []
-
-    cores = {
-        'pendente': '#f1c40f',  # amarelo
-        'aprovado': '#3498db',  # azul
-        'quitado': '#e67e22'    # laranja
-    }
-
-    for status in todos_status:
-        count = status_dict.get(status, 0)
-        status_labels.append(status.capitalize())
-        status_values.append(count)
-        status_colors.append(cores.get(status.lower(), '#95a5a6'))  # cinza padrão
-
-    # ✅ Adicionando vencimento próximo
-    from modules.user import emprestimos_vencendo
-    vencendo = emprestimos_vencendo(session['user'])
-
-    return render_template('index.html',
-        usuario=session['user'],
-        qtd=qtd or 0,
-        valor_total=valor_total or 0,
-        total_com_juros=total_com_juros or 0,
-        status_labels=status_labels,
-        status_values=status_values,
-        status_colors=status_colors,
-        vencendo=vencendo,
-        solicitacoes_amizade=solicitacoes_amizade  # 👈 isso aqui!
-    )
-
-# Login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     mensagem = request.args.get('mensagem')
@@ -155,13 +87,11 @@ def login():
 
         if resultado:
             nome_db, tipo_db, senha_db = resultado
-            # Hash da senha com bcrypt
             if bcrypt.checkpw(senha.encode('utf-8'), senha_db.encode('utf-8')):
                 session.permanent = True
                 session['user'] = nome_db
-                session['tipo'] = tipo_db  # Armazena o tipo
+                session['tipo'] = tipo_db
 
-                # Redireciona para o painel correto
                 if tipo_db == 'solicitante':
                     return redirect(url_for('painel_solicitante'))
                 else:
@@ -174,7 +104,6 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # Coleta de dados do formulário
         nome = request.form.get('nome')
         email = request.form.get('email')
         senha = request.form.get('password')
@@ -182,15 +111,12 @@ def register():
         cpf = request.form.get('cpf')
         data_nascimento = request.form.get('data_nascimento')
         
-        # Validações básicas
         if not all([nome, email, senha, tipo]):
             return render_template('register.html', erro="Todos os campos obrigatórios devem ser preenchidos.")
         
-        # Validação de e-mail
         if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
             return render_template('register.html', erro="Por favor, insira um e-mail válido.")
         
-        # Verifica se e-mail já existe
         conn = sqlite3.connect('database/finflow.db')
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM usuarios WHERE email = ?", (email,))
@@ -198,37 +124,29 @@ def register():
             conn.close()
             return render_template('register.html', erro="Este e-mail já está cadastrado.")
         
-        # Verificação de força da senha
         if len(senha) < 8 or not re.search(r'[A-Z]', senha) or not re.search(r'[0-9]', senha):
             conn.close()
             return render_template('register.html', erro="A senha deve ter pelo menos 8 caracteres, incluindo uma letra maiúscula e um número.")
         
-        # Coleta dados adicionais para solicitantes
         celular = request.form.get('celular')
         endereco = request.form.get('endereco') if tipo == 'solicitante' else None
         
-        # Gera código de verificação
         codigo = str(random.randint(100000, 999999))
-        
-        # Hash da senha com bcrypt
         senha_hash = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
         
-        # Salva dados na sessão
         session['cadastro'] = {
-        'nome': nome,
-        'email': email,
-        'senha_hash': senha_hash.decode('utf-8'),
-        'tipo': tipo,
-        'celular': celular,
-        'endereco': endereco,
-        'cpf': cpf,
-        'data_nascimento': data_nascimento,
-        'codigo': codigo,
-        'expira': datetime.now().timestamp() + 300
+            'nome': nome,
+            'email': email,
+            'senha_hash': senha_hash.decode('utf-8'),
+            'tipo': tipo,
+            'celular': celular,
+            'endereco': endereco,
+            'cpf': cpf,
+            'data_nascimento': data_nascimento,
+            'codigo': codigo,
+            'expira': datetime.now().timestamp() + 300
         }
 
-        
-        # Envia e-mail de verificação
         try:
             enviar_email_verificacao(email, codigo)
             return redirect(url_for('verificar_cadastro'))
@@ -238,404 +156,70 @@ def register():
         
     return render_template('register.html')
 
-def enviar_email_verificacao(destinatario, codigo):
-    """Função para enviar e-mail de verificação"""
-    remetente = os.getenv("EMAIL_REMETENTE")
-    senha_app = os.getenv("EMAIL_SENHA")
-    
-    mensagem_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Código de Verificação - RMCred</title>
-        <style>
-            body {{
-                font-family: 'Segoe UI', Arial, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                max-width: 600px;
-                margin: 0 auto;
-                padding: 20px;
-            }}
-            .header {{
-                text-align: center;
-                padding-bottom: 20px;
-                border-bottom: 1px solid #eaeaea;
-            }}
-            .logo {{
-                color: #2a7de1;
-                font-size: 24px;
-                font-weight: bold;
-                margin-bottom: 10px;
-            }}
-            .code-container {{
-                background: #f8f9fa;
-                border-radius: 8px;
-                padding: 20px;
-                text-align: center;
-                margin: 25px 0;
-                border: 1px dashed #2a7de1;
-            }}
-            .verification-code {{
-                font-size: 28px;
-                font-weight: bold;
-                letter-spacing: 2px;
-                color: #343a40;
-                margin: 15px 0;
-            }}
-            .footer {{
-                margin-top: 30px;
-                padding-top: 20px;
-                border-top: 1px solid #eaeaea;
-                font-size: 12px;
-                color: #6c757d;
-            }}
-            .warning {{
-                background-color: #fff3cd;
-                padding: 10px;
-                border-radius: 5px;
-                margin: 15px 0;
-                font-size: 14px;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <div class="logo">RMCred</div>
-            <h2 style="color: #2a7de1; margin-bottom: 5px;">Código de Verificação</h2>
-            <p style="color: #6c757d;">Confirmação de cadastro</p>
-        </div>
-        
-        <p>Olá,</p>
-        <p>Recebemos uma solicitação para cadastro no sistema RMCred. Utilize o seguinte código para confirmar seu e-mail:</p>
-        
-        <div class="code-container">
-            <p style="margin-bottom: 5px;">Seu código de verificação é:</p>
-            <div class="verification-code">{codigo}</div>
-            <p style="font-size: 14px; color: #dc3545;">Válido por 5 minutos</p>
-        </div>
-        
-        <div class="warning">
-            <strong>Importante:</strong> Nunca compartilhe este código com terceiros, mesmo que afirmem ser da equipe RMCred.
-        </div>
-        
-        <p>Se você não solicitou este código, por favor ignore este e-mail.</p>
-        
-        <div class="footer">
-            <p>© {datetime.now().year} RMCred - Todos os direitos reservados</p>
-            <p>Este é um e-mail automático, por favor não responda.</p>
-        </div>
-    </body>
-    </html>
-    """
-    
-    msg = MIMEText(mensagem_html, 'html')
-    msg['Subject'] = "🔒 Código de Verificação RMCred"
-    msg['From'] = remetente
-    msg['To'] = destinatario
-    
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-        smtp.login(remetente, senha_app)
-        smtp.send_message(msg)
-
-# Logout
-@app.route('/logout')
-def logout():
-    session.pop('user', None)
-    return redirect(url_for('home'))
-
-# Simulador
-@app.route('/simular', methods=['GET', 'POST'])
-def simular():
-    if 'user' not in session:
-        return redirect(url_for('login'))
+@app.route('/verificar_cadastro', methods=['GET', 'POST'])
+def verificar_cadastro():
+    if 'cadastro' not in session:
+        return redirect(url_for('register'))
 
     if request.method == 'POST':
-        cliente = request.form['cliente']
-        valor = float(request.form['valor'])
-        juros = float(request.form['juros'])
-        dias = int(request.form['dias'])
-        observacoes = request.form.get('observacoes')
+        codigo_digitado = ''.join([
+            request.form.get('digit1', ''),
+            request.form.get('digit2', ''),
+            request.form.get('digit3', ''),
+            request.form.get('digit4', ''),
+            request.form.get('digit5', ''),
+            request.form.get('digit6', '')
+        ])
 
-        meses = dias / 30
-        total = valor + (valor * (juros / 100))
-        vencimento = datetime.now() + timedelta(days=dias)
+        cadastro = session['cadastro']
 
-        dados = {
-            'cliente': cliente,
-            'valor': valor,
-            'juros': juros,
-            'dias': dias,
-            'total': round(total, 2),
-            'vencimento': vencimento.strftime('%Y-%m-%d'),
-            'observacoes': observacoes
-        }
-        return render_template('simulador.html', dados=dados)
+        if datetime.now().timestamp() > cadastro['expira']:
+            return render_template('verificar_cadastro.html', erro="⏰ Código expirado. Refaça o cadastro.")
 
-    return render_template('simulador.html')
+        if not codigo_digitado.isdigit() or len(codigo_digitado) != 6:
+            return render_template('verificar_cadastro.html', erro="O código deve conter 6 dígitos numéricos.")
+        
+        if codigo_digitado != str(cadastro['codigo']):
+            return render_template('verificar_cadastro.html', erro="❌ Código incorreto. Tente novamente.")
 
+        conn = sqlite3.connect('database/finflow.db')
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                INSERT INTO usuarios (nome, email, senha, tipo, celular, endereco, cpf, data_nascimento)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                cadastro['nome'], cadastro['email'], cadastro['senha_hash'], cadastro['tipo'],
+                cadastro.get('celular'), cadastro.get('endereco'),
+                cadastro.get('cpf'), cadastro.get('data_nascimento')
+            ))
+            conn.commit()
+            session.pop('cadastro', None)
+            return redirect(url_for('login', mensagem='Cadastro realizado com sucesso!'))
+        except Exception as e:
+            print(f"Erro ao cadastrar usuário: {e}")
+            return render_template('verificar_cadastro.html', erro="Erro ao cadastrar. Tente novamente.")
+        finally:
+            conn.close()
 
-@app.route('/salvar_simulacao', methods=['POST'])
-def salvar_simulacao():
-    if 'user' not in session:
-        return redirect(url_for('login'))
+    return render_template('verificar_cadastro.html')
 
-    nome = session['user']
-    cliente = request.form['cliente']
-    valor = float(request.form['valor'])
-    juros = float(request.form['juros'])
-    dias = int(request.form['dias'])
-    total = float(request.form['total'])
-    vencimento = request.form['vencimento']
-    observacoes = request.form.get('observacoes')
-
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO loans (nome, cliente, valor, juros, dias, total, vencimento, status, observacoes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (nome, cliente, valor, juros, dias, total, vencimento, 'pendente', observacoes))
-    conn.commit()
-    conn.close()
-
-    return redirect(url_for('aprovacoes'))
-
-# Empréstimos ativos
-@app.route('/emprestimos')
-def emprestimos():
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
-
-    dados_raw = listar_emprestimos_ativos(session['user'])
-
-    dados = []
-    hoje = datetime.now().date()
-    vencendo = 0
-
-    for emp_row in dados_raw:
-        emp = dict(emp_row)  # transforma o Row em dict editável
-
-        if 'vencimento' in emp and emp['vencimento']:
-            data_venc = datetime.strptime(emp['vencimento'][:10], '%Y-%m-%d').date()
-            dias_para_vencer = (data_venc - hoje).days
-            emp['dias_para_vencer'] = dias_para_vencer
-
-            if 0 <= dias_para_vencer <= 2:
-                vencendo += 1
-        else:
-            emp['dias_para_vencer'] = 999  # sem data de vencimento, joga pro final
-
-        dados.append(emp)
-
-    dados.sort(key=lambda x: x['dias_para_vencer'])
-
-    return render_template('emprestimos.html', emprestimos=dados, vencendo=vencendo)
-
-# Empréstimos finalizados
-@app.route('/emprestimos_finalizados')
-def emprestimos_finalizados():
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
-
-    dados = listar_emprestimos_finalizados(session['user'])
-    return render_template('emprestimos_finalizados.html', emprestimos=dados)
-
-# Aprovações pendentes
-@app.route('/aprovacoes')
-def aprovacoes():
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
-    pendentes = listar_emprestimos_pendentes(session['user'])
-    return render_template('aprovacoes.html', emprestimos=pendentes)
-
-# Aprovar empréstimo
-@app.route('/aprovar/<int:id>')
-def aprovar_emprestimo(id):
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado."))
-
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-
-    # Verifica se o empréstimo é do usuário
-    cursor.execute("SELECT nome FROM loans WHERE id = ?", (id,))
-    resultado = cursor.fetchone()
-
-    if not resultado or resultado[0] != session['user']:
-        conn.close()
-        return "Acesso negado. Empréstimo não encontrado ou não é seu."
-
-    cursor.execute("UPDATE loans SET status = 'aprovado' WHERE id = ?", (id,))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('aprovacoes'))
-
-# Rejeitar empréstimo
-@app.route('/rejeitar/<int:id>')
-def rejeitar_emprestimo(id):
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado."))
-
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-
-    # Verifica se o empréstimo é do usuário logado
-    cursor.execute("SELECT nome FROM loans WHERE id = ?", (id,))
-    resultado = cursor.fetchone()
-
-    if not resultado or resultado[0] != session['user']:
-        conn.close()
-        return "Acesso negado. Empréstimo não encontrado ou não é seu."
-
-    cursor.execute("DELETE FROM loans WHERE id = ?", (id,))
-    conn.commit()
-    conn.close()
-
-    return redirect(url_for('aprovacoes'))
-
-# Quitar empréstimo
-@app.route('/quitar/<int:id>')
-def quitar(id):
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
-
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT nome FROM loans WHERE id = ?', (id,))
-    dono = cursor.fetchone()
-
-    if not dono or dono[0] != session['user']:
-        return "Acesso negado. Este empréstimo não é seu."
-
-    cursor.execute('UPDATE loans SET pago = 1, status = "quitado" WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-
-    return redirect(url_for('emprestimos'))
-
-# Renovar empréstimo (pagar apenas juros)
-@app.route('/pagar_juros/<int:id>')
-def pagar_juros(id):
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
-
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-
-    cursor.execute('SELECT nome, vencimento, dias FROM loans WHERE id = ?', (id,))
-    dados = cursor.fetchone()
-
-    if not dados:
-        return "Empréstimo não encontrado."
-
-    nome, vencimento_str, dias = dados
-
-    if nome != session['user']:
-        return "Acesso negado. Este empréstimo não é seu."
-
-    vencimento_atual = datetime.strptime(vencimento_str, '%Y-%m-%d')
-    novo_vencimento = vencimento_atual + timedelta(days=dias)
-    novo_vencimento_str = novo_vencimento.strftime('%Y-%m-%d')
-
-    cursor.execute('''
-    UPDATE loans
-    SET vencimento = ?, renovacoes = renovacoes + 1
-    WHERE id = ?
-''', (novo_vencimento_str, id))
-    conn.commit()
-    conn.close()
-
-    return redirect(url_for('emprestimos'))
-
-# Deletar empréstimo finalizado
-@app.route('/deletar/<int:id>')
-def deletar_emprestimo(id):
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
-
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-
-    # Verifica se o empréstimo pertence ao usuário logado
-    cursor.execute("SELECT nome FROM loans WHERE id = ?", (id,))
-    resultado = cursor.fetchone()
-
-    if not resultado or resultado[0] != session['user']:
-        conn.close()
-        return "Acesso negado. Empréstimo não encontrado ou não é seu."
-
-    cursor.execute("DELETE FROM loans WHERE id = ?", (id,))
-    conn.commit()
-    conn.close()
-
-    return redirect(url_for('emprestimos_finalizados'))
-
-# Gerar relatório em PDF
-from flask import make_response
-from io import BytesIO
-from reportlab.pdfgen import canvas
-
-@app.route('/relatorio')
-def gerar_pdf():
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
-
+@app.route('/reenviar_codigo')
+def reenviar_codigo():
+    if 'cadastro' not in session:
+        return redirect(url_for('register'))
     
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer)
-    y = 800
+    try:
+        novo_codigo = str(random.randint(100000, 999999))
+        session['cadastro']['codigo'] = novo_codigo
+        session['cadastro']['expira'] = datetime.now().timestamp() + 300
+        enviar_email_verificacao(session['cadastro']['email'], novo_codigo)
+        return redirect(url_for('verificar_cadastro'))
+    except Exception as e:
+        print(f"Erro ao reenviar código: {e}")
+        return redirect(url_for('verificar_cadastro', erro="Erro ao reenviar código. Tente novamente."))
 
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(50, y, "Relatório de Empréstimos - RMCred")
-    y -= 30
-
-    p.setFont("Helvetica", 12)
-    p.drawString(50, y, "Empréstimos Ativos:")
-    y -= 20
-
-    # Ativos
-    ativos = listar_emprestimos_ativos(session['user'])
-    for emp in ativos:
-        texto = (
-            f"Cliente: {emp['cliente']} | Valor: R${emp['valor']} | "
-            f"Juros: {emp['juros']}% | Total: R${emp['total']} | "
-            f"Vencimento: {emp['vencimento']}"
-        )
-        p.drawString(50, y, texto)
-        y -= 20
-        if y < 100:
-            p.showPage()
-            y = 800
-
-    y -= 20
-    p.drawString(50, y, "Empréstimos Finalizados:")
-    y -= 20
-
-    # Finalizados
-    finalizados = listar_emprestimos_finalizados(session['user'])
-    for emp in finalizados:
-        texto = (
-            f"Cliente: {emp['cliente']} | Valor: R${emp['valor']} | "
-            f"Juros: {emp['juros']}% | Total: R${emp['total']} | "
-            f"Vencimento: {emp['vencimento']}"
-        )
-        p.drawString(50, y, texto)
-        y -= 20
-        if y < 100:
-            p.showPage()
-            y = 800
-
-    p.save()
-    buffer.seek(0)
-
-    return make_response(buffer.read(), {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': 'attachment; filename="relatorio_rmc.pdf"'
-    })
-
-# Página de recuperação de senha
 @app.route('/recuperar', methods=['GET', 'POST'])
 def recuperar():
     if request.method == 'POST':
@@ -649,12 +233,10 @@ def recuperar():
         conn.close()
 
         if user:
-            # Salva e expira o código em 5 minutos
             session['recupera_email'] = email
             session['codigo_verificacao'] = codigo
-            session['codigo_expira'] = datetime.now().timestamp() + 300  # 5 minutos
+            session['codigo_expira'] = datetime.now().timestamp() + 300
 
-            # Envia e-mail
             remetente = os.getenv("EMAIL_REMETENTE")
             senha_app = os.getenv("EMAIL_SENHA")
             mensagem_html = f"""
@@ -782,31 +364,12 @@ def recuperar():
 
     return render_template('recuperar.html')
 
-@app.route('/reenviar_codigo')
-def reenviar_codigo():
-    if 'cadastro' not in session:
-        return redirect(url_for('register'))
-    
-    try:
-        # Gera novo código
-        novo_codigo = str(random.randint(100000, 999999))
-        session['cadastro']['codigo'] = novo_codigo
-        session['cadastro']['expira'] = datetime.now().timestamp() + 300  # 5 minutos
-        
-        # Reenvia e-mail
-        enviar_email_verificacao(session['cadastro']['email'], novo_codigo)
-        return redirect(url_for('verificar_cadastro'))
-    except Exception as e:
-        print(f"Erro ao reenviar código: {e}")
-        return redirect(url_for('verificar_cadastro', erro="Erro ao reenviar código. Tente novamente."))
-
 @app.route('/verificar', methods=['GET', 'POST'])
 def verificar_codigo():
     if request.method == 'POST':
         codigo = request.form['codigo']
         nova_senha = request.form['nova_senha']
 
-        # Verifica se o código existe e não expirou
         codigo_salvo = session.get('codigo_verificacao')
         expira = session.get('codigo_expira')
 
@@ -819,7 +382,6 @@ def verificar_codigo():
         if codigo != codigo_salvo:
             return render_template('verificar.html', erro="❌ Código incorreto. Tente novamente.")
 
-        # Atualiza a senha
         email = session.get('recupera_email')
         senha_hash = bcrypt.hashpw(nova_senha.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
@@ -837,59 +399,10 @@ def verificar_codigo():
 
     return render_template('verificar.html')
 
-@app.route('/verificar_cadastro', methods=['GET', 'POST'])
-def verificar_cadastro():
-    if 'cadastro' not in session:
-        return redirect(url_for('register'))
-
-    if request.method == 'POST':
-        # Combina os dígitos individuais em um código completo
-        codigo_digitado = ''.join([
-            request.form.get('digit1', ''),
-            request.form.get('digit2', ''),
-            request.form.get('digit3', ''),
-            request.form.get('digit4', ''),
-            request.form.get('digit5', ''),
-            request.form.get('digit6', '')
-        ])
-
-        cadastro = session['cadastro']
-
-        if datetime.now().timestamp() > cadastro['expira']:
-            return render_template('verificar_cadastro.html', erro="⏰ Código expirado. Refaça o cadastro.")
-
-        if not codigo_digitado.isdigit() or len(codigo_digitado) != 6:
-            return render_template('verificar_cadastro.html', erro="O código deve conter 6 dígitos numéricos.")
-        # Verifica se o código digitado corresponde ao código salvo na sessão
-        if codigo_digitado != str(cadastro['codigo']):
-            return render_template('verificar_cadastro.html', erro="❌ Código incorreto. Tente novamente.")
-
-        # Código correto, salva o usuário
-        conn = sqlite3.connect('database/finflow.db')
-        cursor = conn.cursor()
-        
-        try:
-            cursor.execute("""
-            INSERT INTO usuarios (nome, email, senha, tipo, celular, endereco, cpf, data_nascimento)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            cadastro['nome'], cadastro['email'], cadastro['senha_hash'], cadastro['tipo'],
-            cadastro.get('celular'), cadastro.get('endereco'),
-            cadastro.get('cpf'), cadastro.get('data_nascimento')
-        ))
-            conn.commit()
-            
-            # Limpa sessão
-            session.pop('cadastro', None)
-            
-            return redirect(url_for('login', mensagem='Cadastro realizado com sucesso!'))
-        except Exception as e:
-            print(f"Erro ao cadastrar usuário: {e}")
-            return render_template('verificar_cadastro.html', erro="Erro ao cadastrar. Tente novamente.")
-        finally:
-            conn.close()
-
-    return render_template('verificar_cadastro.html')
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect(url_for('home'))
 
 @app.route('/check_email', methods=['POST'])
 def check_email():
@@ -913,29 +426,711 @@ def check_email():
     finally:
         conn.close()
 
-def verificar_e_adicionar_coluna_observacoes():
+# ==============================================
+# FUNÇÕES DE EMAIL
+# ==============================================
+
+def enviar_email_verificacao(destinatario, codigo):
+    """Função para enviar e-mail de verificação"""
+    remetente = os.getenv("EMAIL_REMETENTE")
+    senha_app = os.getenv("EMAIL_SENHA")
+    
+    mensagem_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Código de Verificação - RMCred</title>
+        <style>
+            body {{
+                font-family: 'Segoe UI', Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+            }}
+            .header {{
+                text-align: center;
+                padding-bottom: 20px;
+                border-bottom: 1px solid #eaeaea;
+            }}
+            .logo {{
+                color: #2a7de1;
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 10px;
+            }}
+            .code-container {{
+                background: #f8f9fa;
+                border-radius: 8px;
+                padding: 20px;
+                text-align: center;
+                margin: 25px 0;
+                border: 1px dashed #2a7de1;
+            }}
+            .verification-code {{
+                font-size: 28px;
+                font-weight: bold;
+                letter-spacing: 2px;
+                color: #343a40;
+                margin: 15px 0;
+            }}
+            .footer {{
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #eaeaea;
+                font-size: 12px;
+                color: #6c757d;
+            }}
+            .warning {{
+                background-color: #fff3cd;
+                padding: 10px;
+                border-radius: 5px;
+                margin: 15px 0;
+                font-size: 14px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="logo">RMCred</div>
+            <h2 style="color: #2a7de1; margin-bottom: 5px;">Código de Verificação</h2>
+            <p style="color: #6c757d;">Confirmação de cadastro</p>
+        </div>
+        
+        <p>Olá,</p>
+        <p>Recebemos uma solicitação para cadastro no sistema RMCred. Utilize o seguinte código para confirmar seu e-mail:</p>
+        
+        <div class="code-container">
+            <p style="margin-bottom: 5px;">Seu código de verificação é:</p>
+            <div class="verification-code">{codigo}</div>
+            <p style="font-size: 14px; color: #dc3545;">Válido por 5 minutos</p>
+        </div>
+        
+        <div class="warning">
+            <strong>Importante:</strong> Nunca compartilhe este código com terceiros, mesmo que afirmem ser da equipe RMCred.
+        </div>
+        
+        <p>Se você não solicitou este código, por favor ignore este e-mail.</p>
+        
+        <div class="footer">
+            <p>© {datetime.now().year} RMCred - Todos os direitos reservados</p>
+            <p>Este é um e-mail automático, por favor não responda.</p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    msg = MIMEText(mensagem_html, 'html')
+    msg['Subject'] = "🔒 Código de Verificação RMCred"
+    msg['From'] = remetente
+    msg['To'] = destinatario
+    
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+        smtp.login(remetente, senha_app)
+        smtp.send_message(msg)
+
+@app.route('/enviar-relatorio-email', methods=['POST'])
+def enviar_relatorio_email():
+    if 'user' not in session:
+        return jsonify({'success': False, 'message': 'Usuário não autenticado'})
+    
+    data = request.get_json()
+    email_destino = data.get('email')
+    
+    if not email_destino:
+        return jsonify({'success': False, 'message': 'E-mail não fornecido'})
+    
+    try:
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story = []
+
+        username = session['user']
+        ativos = listar_emprestimos_ativos(username)
+        finalizados = listar_emprestimos_finalizados(username)
+
+        story.append(Paragraph("Relatório de Empréstimos - RMCred", styles['Title']))
+        story.append(Paragraph("<br/><br/>", styles['Normal']))
+
+        story.append(Paragraph("<b>Empréstimos Ativos:</b>", styles['Heading2']))
+        for emp in ativos:
+            emp_dict = dict(emp)
+            texto = (
+                f"Cliente: {emp_dict.get('cliente', 'N/A')} | Valor: R${emp_dict.get('valor', 'N/A')} | "
+                f"Juros: {emp_dict.get('juros', 'N/A')}% | Total: R${emp_dict.get('total', 'N/A')} | "
+                f"Vencimento: {emp_dict.get('vencimento', 'N/A')}"
+            )
+            story.append(Paragraph(texto, styles['Normal']))
+            story.append(Paragraph("<br/>", styles['Normal']))
+
+        story.append(Paragraph("<br/>", styles['Normal']))
+        
+        story.append(Paragraph("<b>Empréstimos Finalizados:</b>", styles['Heading2']))
+        for emp in finalizados:
+            emp_dict = dict(emp)
+            texto = (
+                f"Cliente: {emp_dict.get('cliente', 'N/A')} | Valor: R${emp_dict.get('valor', 'N/A')} | "
+                f"Juros: {emp_dict.get('juros', 'N/A')}% | Total: R${emp_dict.get('total', 'N/A')} | "
+                f"Vencimento: {emp_dict.get('vencimento', 'N/A')}"
+            )
+            story.append(Paragraph(texto, styles['Normal']))
+            story.append(Paragraph("<br/>", styles['Normal']))
+
+        doc.build(story)
+        pdf_data = buffer.getvalue()
+        buffer.close()
+        
+        remetente_email = os.getenv("EMAIL_REMETENTE")
+        senha_app_email = os.getenv("EMAIL_SENHA")
+
+        if not remetente_email or not senha_app_email:
+            return jsonify({'success': False, 'message': 'Credenciais de e-mail não configuradas corretamente no ambiente.'})
+
+        msg = MIMEMultipart()
+        msg['From'] = remetente_email
+        msg['To'] = email_destino
+        msg['Subject'] = 'Seu Relatório de Empréstimos - RMCred'
+        
+        body = """
+        Olá!
+        
+        Segue em anexo o relatório solicitado de seus empréstimos na plataforma RMCred.
+        
+        Caso tenha alguma dúvida, entre em contato com nosso suporte.
+        
+        Atenciosamente,
+        Equipe RMCred
+        """
+        msg.attach(MIMEText(body, 'plain'))
+        
+        pdf_attachment = MIMEApplication(pdf_data, _subtype="pdf")
+        pdf_attachment.add_header('Content-Disposition', 'attachment', filename="relatorio_rmc.pdf")
+        msg.attach(pdf_attachment)
+        
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(remetente_email, senha_app_email)
+            server.send_message(msg)
+        
+        return jsonify({'success': True})
+    
+    except Exception as e:
+        print(f"Erro ao enviar e-mail: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+# ==============================================
+# ROTAS DE PAINÉIS
+# ==============================================
+
+@app.route('/painel')
+def painel():
+    if session.get('tipo') == 'solicitante':
+        return render_template('painel_solicitante.html', usuario=session['user'])
+
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
+
     conn = sqlite3.connect('database/finflow.db')
     cursor = conn.cursor()
-    try:
-        cursor.execute("ALTER TABLE usuarios ADD COLUMN is_google_auth BOOLEAN DEFAULT 0")
-        conn.commit()
-        print("✅ Coluna 'is_google_auth' adicionada com sucesso.")
-    except:
-        print("ℹ️ Coluna 'is_google_auth' já existe.")
+
+    cursor.execute("""
+        SELECT COUNT(*) FROM amigos
+        WHERE amigo = ? AND status = 'pendente'
+    """, (session['user'],))
+    solicitacoes_amizade = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*), SUM(valor), SUM(total) FROM loans WHERE nome = ? AND pago = 0 AND status = 'aprovado'", (session['user'],))
+    qtd, valor_total, total_com_juros = cursor.fetchone()
+
+    cursor.execute("SELECT status, COUNT(*) FROM loans WHERE nome = ? GROUP BY status", (session['user'],))
+    status_data = cursor.fetchall()
     conn.close()
 
-import sqlite3
+    todos_status = ['pendente', 'aprovado', 'quitado']
+    status_dict = {row[0]: row[1] for row in status_data}
 
-def adicionar_coluna_lida():
+    status_labels = []
+    status_values = []
+    status_colors = []
+
+    cores = {
+        'pendente': '#f1c40f',
+        'aprovado': '#3498db',
+        'quitado': '#e67e22'
+    }
+
+    for status in todos_status:
+        count = status_dict.get(status, 0)
+        status_labels.append(status.capitalize())
+        status_values.append(count)
+        status_colors.append(cores.get(status.lower(), '#95a5a6'))
+
+    vencendo = emprestimos_vencendo(session['user'])
+
+    return render_template('index.html',
+        usuario=session['user'],
+        qtd=qtd or 0,
+        valor_total=valor_total or 0,
+        total_com_juros=total_com_juros or 0,
+        status_labels=status_labels,
+        status_values=status_values,
+        status_colors=status_colors,
+        vencendo=vencendo,
+        solicitacoes_amizade=solicitacoes_amizade
+    )
+
+@app.route('/painel_solicitante')
+def painel_solicitante():
+    if 'user' not in session or session.get('tipo') != 'solicitante':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Solicitante."))
+    
     conn = sqlite3.connect('database/finflow.db')
     cursor = conn.cursor()
-    try:
-        cursor.execute("ALTER TABLE usuarios ADD COLUMN data_nascimento TEXT;")
-        conn.commit()
-        print("✅ Coluna 'data nascimento' adicionada com sucesso")
-    except sqlite3.OperationalError:
-        print("ℹ️ Coluna 'data nascimento' já existe")
+
+    cursor.execute("""
+        SELECT COUNT(*) FROM amigos
+        WHERE amigo = ? AND status = 'pendente'
+    """, (session['user'],))
+    solicitacoes_amizade = cursor.fetchone()[0]
     conn.close()
+    
+    return render_template(
+        'painel_solicitante.html',
+        usuario=session['user'],
+        solicitacoes_amizade=solicitacoes_amizade
+    )
+
+# ==============================================
+# ROTAS DE EMPRÉSTIMOS (EMPRESTADOR)
+# ==============================================
+
+@app.route('/emprestimos')
+def emprestimos():
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
+
+    dados_raw = listar_emprestimos_ativos(session['user'])
+
+    dados = []
+    hoje = datetime.now().date()
+    vencendo = 0
+
+    for emp_row in dados_raw:
+        emp = dict(emp_row)
+
+        if 'vencimento' in emp and emp['vencimento']:
+            data_venc = datetime.strptime(emp['vencimento'][:10], '%Y-%m-%d').date()
+            dias_para_vencer = (data_venc - hoje).days
+            emp['dias_para_vencer'] = dias_para_vencer
+
+            if 0 <= dias_para_vencer <= 2:
+                vencendo += 1
+        else:
+            emp['dias_para_vencer'] = 999
+
+        dados.append(emp)
+
+    dados.sort(key=lambda x: x['dias_para_vencer'])
+
+    return render_template('emprestimos.html', emprestimos=dados, vencendo=vencendo)
+
+@app.route('/emprestimos_finalizados')
+def emprestimos_finalizados():
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
+
+    dados = listar_emprestimos_finalizados(session['user'])
+    return render_template('emprestimos_finalizados.html', emprestimos=dados)
+
+@app.route('/aprovacoes')
+def aprovacoes():
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
+    pendentes = listar_emprestimos_pendentes(session['user'])
+    return render_template('aprovacoes.html', emprestimos=pendentes)
+
+@app.route('/aprovar/<int:id>')
+def aprovar_emprestimo(id):
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado."))
+
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT nome FROM loans WHERE id = ?", (id,))
+    resultado = cursor.fetchone()
+
+    if not resultado or resultado[0] != session['user']:
+        conn.close()
+        return "Acesso negado. Empréstimo não encontrado ou não é seu."
+
+    cursor.execute("UPDATE loans SET status = 'aprovado' WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('aprovacoes'))
+
+@app.route('/rejeitar/<int:id>')
+def rejeitar_emprestimo(id):
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado."))
+
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT nome FROM loans WHERE id = ?", (id,))
+    resultado = cursor.fetchone()
+
+    if not resultado or resultado[0] != session['user']:
+        conn.close()
+        return "Acesso negado. Empréstimo não encontrado ou não é seu."
+
+    cursor.execute("DELETE FROM loans WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('aprovacoes'))
+
+@app.route('/quitar/<int:id>')
+def quitar(id):
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
+
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT nome FROM loans WHERE id = ?', (id,))
+    dono = cursor.fetchone()
+
+    if not dono or dono[0] != session['user']:
+        return "Acesso negado. Este empréstimo não é seu."
+
+    cursor.execute('UPDATE loans SET pago = 1, status = "quitado" WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('emprestimos'))
+
+@app.route('/pagar_juros/<int:id>')
+def pagar_juros(id):
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
+
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT nome, vencimento, dias FROM loans WHERE id = ?', (id,))
+    dados = cursor.fetchone()
+
+    if not dados:
+        return "Empréstimo não encontrado."
+
+    nome, vencimento_str, dias = dados
+
+    if nome != session['user']:
+        return "Acesso negado. Este empréstimo não é seu."
+
+    vencimento_atual = datetime.strptime(vencimento_str, '%Y-%m-%d')
+    novo_vencimento = vencimento_atual + timedelta(days=dias)
+    novo_vencimento_str = novo_vencimento.strftime('%Y-%m-%d')
+
+    cursor.execute('''
+    UPDATE loans
+    SET vencimento = ?, renovacoes = renovacoes + 1
+    WHERE id = ?
+    ''', (novo_vencimento_str, id))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('emprestimos'))
+
+@app.route('/deletar/<int:id>')
+def deletar_emprestimo(id):
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
+
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT nome FROM loans WHERE id = ?", (id,))
+    resultado = cursor.fetchone()
+
+    if not resultado or resultado[0] != session['user']:
+        conn.close()
+        return "Acesso negado. Empréstimo não encontrado ou não é seu."
+
+    cursor.execute("DELETE FROM loans WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('emprestimos_finalizados'))
+
+# ==============================================
+# ROTAS DE RELATÓRIOS
+# ==============================================
+
+@app.route('/relatorio-opcoes')
+def relatorio_opcoes():
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
+    
+    username = session['user']
+    usuario_email = None
+    try:
+        conn = sqlite3.connect('database/finflow.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT email FROM users WHERE username = ?", (username,))
+        user_data = cursor.fetchone()
+        if user_data:
+            usuario_email = user_data['email']
+        else:
+            print(f"AVISO: E-mail não encontrado para o usuário: {username}")
+    except Exception as e:
+        print(f"Erro ao buscar e-mail do usuário no DB: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+    usuario = {'email': usuario_email if usuario_email else ''}
+    return render_template('relatorio_opcoes.html', usuario=usuario)
+
+@app.route('/personalizar_relatorio')
+def personalizar_relatorio():
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
+    return render_template('personalizar_relatorio.html')
+
+@app.route('/gerar_relatorio_personalizado', methods=['POST'])
+def gerar_relatorio_personalizado():
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        flash("Acesso negado. Faça login como Emprestador.", "error")
+        return redirect(url_for('login'))
+
+    username = session['user']
+    tipo_relatorio = request.form.get('tipo_emprestimo')
+    
+    incluir_cliente = 'incluir_cliente' in request.form
+    incluir_valor = 'incluir_valor' in request.form
+    incluir_juros = 'incluir_juros' in request.form
+    incluir_total = 'incluir_total' in request.form
+    incluir_vencimento = 'incluir_vencimento' in request.form
+    incluir_status = 'incluir_status' in request.form
+    incluir_renovacoes = 'incluir_renovacoes' in request.form
+
+    if tipo_relatorio == 'todos':
+        dados = listar_todos_emprestimos(username)
+        titulo_relatorio = "Relatório Completo"
+    elif tipo_relatorio == 'ativos':
+        dados = {'ativos': listar_emprestimos_ativos(username)}
+        titulo_relatorio = "Empréstimos Ativos"
+    elif tipo_relatorio == 'finalizados':
+        dados = {'finalizados': listar_emprestimos_finalizados(username)}
+        titulo_relatorio = "Empréstimos Finalizados"
+    elif tipo_relatorio == 'pendentes':
+        dados = {'pendentes': listar_emprestimos_pendentes(username)}
+        titulo_relatorio = "Empréstimos Pendentes"
+    elif tipo_relatorio == 'vencendo':
+        dados = {'vencendo_count': emprestimos_vencendo(username)}
+        titulo_relatorio = "Empréstimos Vencendo"
+    elif tipo_relatorio == 'solicitacoes':
+        dados = {'solicitacoes': listar_solicitacoes_pendentes(username)}
+        titulo_relatorio = "Solicitações Pendentes"
+        incluir_total = False
+        incluir_renovacoes = False
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+
+    story.append(Paragraph(f"Relatório Personalizado - RMCred ({titulo_relatorio})", styles['Title']))
+    story.append(Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
+    story.append(Paragraph(f"Usuário: {username}", styles['Normal']))
+    story.append(Paragraph("<br/><br/>", styles['Normal']))
+
+    if tipo_relatorio == 'todos' and dados.get('vencendo_count', 0) > 0:
+        story.append(Paragraph("<b>Empréstimos Vencendo (próximos 2 dias):</b>", styles['Heading2']))
+        story.append(Paragraph(f"Quantidade: {dados['vencendo_count']}", styles['Normal']))
+        story.append(Paragraph("<br/>", styles['Normal']))
+
+    def formatar_emprestimo(emp, tipo='emprestimo'):
+        emp_dict = dict(emp)
+        partes = []
+
+        if tipo == 'emprestimo':
+            if incluir_cliente:
+                partes.append(f"Cliente: {emp_dict.get('cliente', 'N/A')}")
+            if incluir_valor:
+                partes.append(f"Valor: R${emp_dict.get('valor', 'N/A')}")
+            if incluir_juros:
+                partes.append(f"Juros: {emp_dict.get('juros', 'N/A')}%")
+            if incluir_total:
+                partes.append(f"Total: R${emp_dict.get('total', 'N/A')}")
+            if incluir_vencimento:
+                partes.append(f"Vencimento: {emp_dict.get('vencimento', 'N/A')}")
+            if incluir_status:
+                partes.append(f"Status: {emp_dict.get('status', 'N/A')}")
+            if incluir_renovacoes:
+                partes.append(f"Renovações: {emp_dict.get('renovacoes', 'N/A')}")
+        elif tipo == 'solicitacao':
+            partes.append(f"Solicitante: {emp_dict.get('solicitante', 'N/A')}")
+            if incluir_valor:
+                partes.append(f"Valor: R${emp_dict.get('valor', 'N/A')}")
+            if incluir_juros:
+                partes.append(f"Juros: {emp_dict.get('juros', 'N/A')}%")
+            partes.append(f"Dias: {emp_dict.get('dias', 'N/A')}")
+            partes.append(f"Data: {emp_dict.get('data_criacao', 'N/A')}")
+            if incluir_status:
+                partes.append(f"Status: {emp_dict.get('status', 'N/A')}")
+            if incluir_renovacoes:
+                partes.append(f"Renovações: {emp_dict.get('renovacoes', 'N/A')}")
+
+        return " | ".join(partes)
+
+    secoes = [
+        ('ativos', 'Empréstimos Ativos'),
+        ('finalizados', 'Empréstimos Finalizados'),
+        ('pendentes', 'Empréstimos Pendentes'),
+        ('solicitacoes', 'Solicitações Pendentes')
+    ]
+
+    for secao, titulo in secoes:
+        if dados.get(secao):
+            story.append(Paragraph(f"<b>{titulo}:</b>", styles['Heading2']))
+            for item in dados[secao]:
+                texto = formatar_emprestimo(item, 'solicitacao' if secao == 'solicitacoes' else 'emprestimo')
+                story.append(Paragraph(texto, styles['Normal']))
+                story.append(Paragraph("<br/>", styles['Normal']))
+            story.append(Paragraph("<br/>", styles['Normal']))
+
+    try:
+        doc.build(story)
+    except Exception as e:
+        print(f"Erro ao construir o PDF: {e}")
+        flash("Erro ao gerar o relatório.", "error")
+        return redirect(url_for('personalizar_relatorio'))
+
+    buffer.seek(0)
+    return make_response(buffer.getvalue(), {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': f'attachment; filename="relatorio_{tipo_relatorio}_{username}.pdf"'
+    })
+
+@app.route('/relatorio', methods=['GET'])
+def gerar_pdf():
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        flash("Acesso negado. Faça login como Emprestador.", "error")
+        return redirect(url_for('login'))
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+
+    story.append(Paragraph("Relatório de Empréstimos - RMCred", styles['Title']))
+    story.append(Paragraph("<br/><br/>", styles['Normal']))
+
+    story.append(Paragraph("<b>Empréstimos Ativos:</b>", styles['Heading2']))
+    
+    ativos = listar_emprestimos_ativos(session['user'])
+    if not ativos:
+        story.append(Paragraph("Nenhum empréstimo ativo encontrado.", styles['Normal']))
+    for emp in ativos:
+        texto = (
+            f"Cliente: {emp['cliente']} | Valor: R${emp['valor']} | "
+            f"Juros: {emp['juros']}% | Total: R${emp['total']} | "
+            f"Vencimento: {emp['vencimento']}"
+        )
+        story.append(Paragraph(texto, styles['Normal']))
+        story.append(Paragraph("<br/>", styles['Normal']))
+
+    story.append(Paragraph("<br/>", styles['Normal']))
+    
+    story.append(Paragraph("<b>Empréstimos Finalizados:</b>", styles['Heading2']))
+    
+    finalizados = listar_emprestimos_finalizados(session['user'])
+    if not finalizados:
+        story.append(Paragraph("Nenhum empréstimo finalizado encontrado.", styles['Normal']))
+    for emp in finalizados:
+        texto = (
+            f"Cliente: {emp['cliente']} | Valor: R${emp['valor']} | "
+            f"Juros: {emp['juros']}% | Total: R${emp['total']} | "
+            f"Vencimento: {emp['vencimento']}"
+        )
+        story.append(Paragraph(texto, styles['Normal']))
+        story.append(Paragraph("<br/>", styles['Normal']))
+
+    doc.build(story)
+    buffer.seek(0)
+
+    return make_response(buffer.getvalue(), {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="relatorio_rmc.pdf"'
+    })
+
+# ==============================================
+# ROTAS DE SIMULAÇÃO
+# ==============================================
+
+@app.route('/simular', methods=['GET', 'POST'])
+def simular():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        cliente = request.form['cliente']
+        valor = float(request.form['valor'])
+        juros = float(request.form['juros'])
+        dias = int(request.form['dias'])
+        observacoes = request.form.get('observacoes')
+
+        meses = dias / 30
+        total = valor + (valor * (juros / 100))
+        vencimento = datetime.now() + timedelta(days=dias)
+
+        dados = {
+            'cliente': cliente,
+            'valor': valor,
+            'juros': juros,
+            'dias': dias,
+            'total': round(total, 2),
+            'vencimento': vencimento.strftime('%Y-%m-%d'),
+            'observacoes': observacoes
+        }
+        return render_template('simulador.html', dados=dados)
+
+    return render_template('simulador.html')
+
+@app.route('/salvar_simulacao', methods=['POST'])
+def salvar_simulacao():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    nome = session['user']
+    cliente = request.form['cliente']
+    valor = float(request.form['valor'])
+    juros = float(request.form['juros'])
+    dias = int(request.form['dias'])
+    total = float(request.form['total'])
+    vencimento = request.form['vencimento']
+    observacoes = request.form.get('observacoes')
+
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO loans (nome, cliente, valor, juros, dias, total, vencimento, status, observacoes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (nome, cliente, valor, juros, dias, total, vencimento, 'pendente', observacoes))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('aprovacoes'))
+
+# ==============================================
+# ROTAS DE SOLICITAÇÕES (SOLICITANTE)
+# ==============================================
 
 @app.route('/solicitar', methods=['GET', 'POST'])
 def solicitar():
@@ -950,7 +1145,6 @@ def solicitar():
             dias = int(request.form['dias'])
             mensagem = request.form.get('mensagem', '')
 
-            # Verifica se o emprestador é realmente amigo
             conn = sqlite3.connect('database/finflow.db')
             cursor = conn.cursor()
             cursor.execute("""
@@ -965,7 +1159,6 @@ def solicitar():
                                     emprestadores=get_amigos(session['user']),
                                     erro="Você só pode solicitar empréstimos a amigos aprovados.")
 
-            # Continua com a solicitação
             cursor.execute("""
                 INSERT INTO solicitacoes (solicitante, emprestador, valor, juros, dias, mensagem)
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -988,161 +1181,6 @@ def solicitar():
                                 erro="Erro ao processar solicitação. Verifique os dados.")
 
     return render_template('solicitar.html', emprestadores=get_amigos(session['user']))
-
-def get_amigos(usuario):
-    """Retorna apenas amigos aprovados do usuário"""
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT 
-            CASE WHEN solicitante = ? THEN amigo ELSE solicitante END
-        FROM amigos
-        WHERE (solicitante = ? OR amigo = ?) AND status = 'aprovado'
-    """, (usuario, usuario, usuario))
-    amigos = [row[0] for row in cursor.fetchall()]
-    conn.close()
-    return amigos
-
-@app.route('/solicitacoes')
-def ver_solicitacoes():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
-
-    conn = sqlite3.connect('database/finflow.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM solicitacoes WHERE emprestador = ?", (session['user'],))
-    dados = cursor.fetchall()
-    conn.close()
-
-    return render_template('painel_solicitacoes.html', solicitacoes=dados)
-
-@app.route('/aprovar_solicitacao/<int:id>')
-def aprovar_solicitacao(id):
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
-
-    conn = sqlite3.connect('database/finflow.db')
-    conn.row_factory = sqlite3.Row  # 👈 Importante!
-    cursor = conn.cursor()
-
-    # Verifica se o usuário é o dono da solicitação
-    cursor.execute("SELECT * FROM solicitacoes WHERE id = ? AND emprestador = ?", (id, session['user']))
-    solicitacao = cursor.fetchone()
-
-    if not solicitacao:
-        return "Solicitação não encontrada ou acesso negado."
-
-    # Adiciona aos empréstimos
-    solicitante, valor, juros, dias, observacao = solicitacao[1], solicitacao[3], solicitacao[4], solicitacao[5], solicitacao[7]
-    total = round(valor + (valor * (juros / 100)), 2)
-    vencimento = (datetime.now() + timedelta(days=dias)).strftime('%Y-%m-%d')
-
-    cursor.execute("""
-        INSERT INTO loans (nome, valor, juros, dias, total, vencimento, status, cliente, pago, renovacoes, observacoes)
-        VALUES (?, ?, ?, ?, ?, ?, 'aprovado', ?, 0, 0, ?)
-        """, (session['user'], valor, juros, dias, total, vencimento, solicitante, observacao))
-
-    # Atualiza o status da solicitação
-    cursor.execute("UPDATE solicitacoes SET status = 'aprovado' WHERE id = ?", (id,))
-    conn.commit()
-    conn.close()
-
-    return redirect(url_for('ver_solicitacoes'))
-
-@app.route('/recusar_solicitacao/<int:id>')
-def recusar_solicitacao(id):
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
-
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-    cursor.execute("UPDATE solicitacoes SET status = 'recusado' WHERE id = ? AND emprestador = ?", (id, session['user']))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('ver_solicitacoes'))
-
-@app.route('/editar_solicitacao/<int:id>', methods=['GET', 'POST'])
-def editar_solicitacao(id):
-    if 'user' not in session or session.get('tipo') != 'emprestador':
-        return redirect(url_for('login', mensagem="Acesso negado."))
-
-    origem = request.args.get('origem')  # 👈 Corrigido: pegar origem da URL no GET
-
-    conn = sqlite3.connect('database/finflow.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    if request.method == 'POST':
-        valor = float(request.form['valor'])
-        juros = float(request.form['juros'])
-        dias = int(request.form['dias'])
-        origem = request.form.get('origem')
-
-        if origem not in ['loans', 'solicitacoes']:
-            conn.close()
-            return "Origem inválida.", 400
-
-        if origem == 'loans':
-            observacoes = request.form.get('observacoes', '')
-            meses = dias / 30
-            total = valor + (valor * (juros / 100))
-
-            cursor.execute("""
-                UPDATE loans SET valor = ?, juros = ?, dias = ?, total = ?, observacoes = ?
-                WHERE id = ?
-            """, (valor, juros, dias, round(total, 2), observacoes, id))
-            conn.commit()
-            conn.close()
-            return redirect(url_for('aprovacoes'))
-        else:
-            mensagem = request.form.get('mensagem', '')
-            cursor.execute("""
-                UPDATE solicitacoes SET valor = ?, juros = ?, dias = ?, mensagem = ?
-                WHERE id = ?
-            """, (valor, juros, dias, mensagem, id))
-            conn.commit()
-            conn.close()
-            return redirect(url_for('ver_solicitacoes'))
-
-    # --- GET ---
-    if origem == 'loans':
-        cursor.execute("SELECT * FROM loans WHERE id = ?", (id,))
-        emprestimo = cursor.fetchone()
-    else:
-        cursor.execute("SELECT * FROM solicitacoes WHERE id = ?", (id,))
-        emprestimo = cursor.fetchone()
-
-    if not emprestimo:
-        conn.close()
-        return "Solicitação não encontrada", 404
-
-    conn.close()
-    return render_template('editar_solicitacao.html', emprestimo=emprestimo, origem=origem)
-
-@app.route('/painel_solicitante')
-def painel_solicitante():
-    if 'user' not in session or session.get('tipo') != 'solicitante':
-        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Solicitante."))
-    
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-
-    # Consultar solicitações de amizade pendentes
-    cursor.execute("""
-        SELECT COUNT(*) FROM amigos
-        WHERE amigo = ? AND status = 'pendente'
-    """, (session['user'],))
-    solicitacoes_amizade = cursor.fetchone()[0]
-    
-    return render_template(
-        'painel_solicitante.html',
-        usuario=session['user'],
-        solicitacoes_amizade=solicitacoes_amizade
-    )
 
 @app.route('/minhas_solicitacoes')
 def minhas_solicitacoes():
@@ -1186,7 +1224,6 @@ def excluir_solicitacao(id):
     conn = sqlite3.connect('database/finflow.db')
     cursor = conn.cursor()
     
-    # Verifica se a solicitação é do usuário e está pendente
     cursor.execute("SELECT status FROM solicitacoes WHERE id = ? AND solicitante = ?", 
     (id, session['user']))
     resultado = cursor.fetchone()
@@ -1207,7 +1244,7 @@ def emprestimos_aprovados():
         return redirect(url_for('login'))
     
     conn = sqlite3.connect('database/finflow.db')
-    conn.row_factory = sqlite3.Row  # Isso permite acesso como dicionário
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -1241,68 +1278,381 @@ def emprestimos_aprovados():
     
     return render_template('emprestimos_aprovados.html', emprestimos=emprestimos)
 
-@socketio.on('join_chat')
-def handle_join_chat(data):
-    user = data['user']
-    destinatario = data['destinatario']
-    
-    # Entra nas salas de chat (bidirecional)
-    join_room(f"{user}_{destinatario}")
-    join_room(f"{destinatario}_{user}")
-    
-    print(f"Usuário {user} entrou na conversa com {destinatario}")
+# ==============================================
+# ROTAS DE SOLICITAÇÕES (EMPRESTADOR)
+# ==============================================
 
-@socketio.on('digitando')
-def handle_digitando(data):
-    # Envia apenas para o destinatário
-    emit('usuario_digitando', data, room=f"{data['destinatario']}_{data['remetente']}")
+@app.route('/solicitacoes')
+def ver_solicitacoes():
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
 
-@socketio.on('parou_digitando')
-def handle_parou_digitando(data):
-    # Notifica que o usuário parou de digitar
-    emit('usuario_parou_digitando', data, room=f"{data['destinatario']}_{data['remetente']}")
+    conn = sqlite3.connect('database/finflow.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
 
-@socketio.on('enviar_mensagem')
-def handle_enviar_mensagem(data):
+    cursor.execute("SELECT * FROM solicitacoes WHERE emprestador = ?", (session['user'],))
+    dados = cursor.fetchall()
+    conn.close()
+
+    return render_template('painel_solicitacoes.html', solicitacoes=dados)
+
+@app.route('/aprovar_solicitacao/<int:id>')
+def aprovar_solicitacao(id):
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
+
+    conn = sqlite3.connect('database/finflow.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM solicitacoes WHERE id = ? AND emprestador = ?", (id, session['user']))
+    solicitacao = cursor.fetchone()
+
+    if not solicitacao:
+        return "Solicitação não encontrada ou acesso negado."
+
+    solicitante, valor, juros, dias, observacao = solicitacao[1], solicitacao[3], solicitacao[4], solicitacao[5], solicitacao[7]
+    total = round(valor + (valor * (juros / 100)), 2)
+    vencimento = (datetime.now() + timedelta(days=dias)).strftime('%Y-%m-%d')
+
+    cursor.execute("""
+        INSERT INTO loans (nome, valor, juros, dias, total, vencimento, status, cliente, pago, renovacoes, observacoes)
+        VALUES (?, ?, ?, ?, ?, ?, 'aprovado', ?, 0, 0, ?)
+        """, (session['user'], valor, juros, dias, total, vencimento, solicitante, observacao))
+
+    cursor.execute("UPDATE solicitacoes SET status = 'aprovado' WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('ver_solicitacoes'))
+
+@app.route('/recusar_solicitacao/<int:id>')
+def recusar_solicitacao(id):
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado. Faça login como Emprestador."))
+
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+    cursor.execute("UPDATE solicitacoes SET status = 'recusado' WHERE id = ? AND emprestador = ?", (id, session['user']))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('ver_solicitacoes'))
+
+@app.route('/editar_solicitacao/<int:id>', methods=['GET', 'POST'])
+def editar_solicitacao(id):
+    if 'user' not in session or session.get('tipo') != 'emprestador':
+        return redirect(url_for('login', mensagem="Acesso negado."))
+
+    origem = request.args.get('origem')
+
+    conn = sqlite3.connect('database/finflow.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        valor = float(request.form['valor'])
+        juros = float(request.form['juros'])
+        dias = int(request.form['dias'])
+        origem = request.form.get('origem')
+
+        if origem not in ['loans', 'solicitacoes']:
+            conn.close()
+            return "Origem inválida.", 400
+
+        if origem == 'loans':
+            observacoes = request.form.get('observacoes', '')
+            meses = dias / 30
+            total = valor + (valor * (juros / 100))
+
+            cursor.execute("""
+                UPDATE loans SET valor = ?, juros = ?, dias = ?, total = ?, observacoes = ?
+                WHERE id = ?
+            """, (valor, juros, dias, round(total, 2), observacoes, id))
+            conn.commit()
+            conn.close()
+            return redirect(url_for('aprovacoes'))
+        else:
+            mensagem = request.form.get('mensagem', '')
+            cursor.execute("""
+                UPDATE solicitacoes SET valor = ?, juros = ?, dias = ?, mensagem = ?
+                WHERE id = ?
+            """, (valor, juros, dias, mensagem, id))
+            conn.commit()
+            conn.close()
+            return redirect(url_for('ver_solicitacoes'))
+
+    if origem == 'loans':
+        cursor.execute("SELECT * FROM loans WHERE id = ?", (id,))
+        emprestimo = cursor.fetchone()
+    else:
+        cursor.execute("SELECT * FROM solicitacoes WHERE id = ?", (id,))
+        emprestimo = cursor.fetchone()
+
+    if not emprestimo:
+        conn.close()
+        return "Solicitação não encontrada", 404
+
+    conn.close()
+    return render_template('editar_solicitacao.html', emprestimo=emprestimo, origem=origem)
+
+# ==============================================
+# ROTAS DE AMIGOS E RELACIONAMENTOS
+# ==============================================
+
+@app.route('/buscar', methods=['GET', 'POST'])
+def buscar_usuario():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    resultados = []
+    if request.method == 'POST':
+        termo = request.form['termo']
+        conn = sqlite3.connect('database/finflow.db')
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT nome FROM usuarios 
+            WHERE nome LIKE ? AND nome != ?
+        """, (f'%{termo}%', session['user']))
+        resultados = [r[0] for r in cursor.fetchall()]
+        conn.close()
+
+    return render_template('buscar.html', resultados=resultados)
+
+@app.route('/adicionar_amigo/<nome>')
+def adicionar_amigo(nome):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    solicitante = session['user']
     conn = sqlite3.connect('database/finflow.db')
     cursor = conn.cursor()
     
-    hora_brasil = datetime.utcnow() - timedelta(hours=3)
-    data_formatada = hora_brasil.strftime('%d/%m/%Y %H:%M')
+    try:
+        cursor.execute("""
+            SELECT id FROM amigos 
+            WHERE (solicitante = ? AND amigo = ?)
+            OR (solicitante = ? AND amigo = ?)
+        """, (solicitante, nome, nome, solicitante))
+        
+        if cursor.fetchone():
+            flash(f'Você e {nome} já têm uma conexão pendente ou confirmada! 🌟', 'info')
+            conn.close()
+            return redirect(url_for('buscar_usuario'))
+        
+        cursor.execute("""
+            INSERT INTO amigos (solicitante, amigo, status) 
+            VALUES (?, ?, 'pendente')
+        """, (solicitante, nome))
+        
+        conn.commit()
+        flash(f'Solicitação de amizade enviada com para  {nome}!', 'success')
+    
+    except sqlite3.IntegrityError as e:
+        print(f"Erro de banco de dados: {e}")
+        flash('Erro ao enviar solicitação de amizade', 'danger')
+    
+    finally:
+        conn.close()
+    
+    return redirect(url_for('buscar_usuario'))
+
+@app.route('/solicitacoes_amizade')
+def solicitacoes_amizade():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
     
     cursor.execute("""
-        INSERT INTO mensagens (remetente, destinatario, mensagem, data_envio, lida) 
-        VALUES (?, ?, ?, ?, ?)
-    """, (data['remetente'], data['destinatario'], data['conteudo'], data_formatada, 0))
-    conn.commit()
+        SELECT a.id, a.solicitante 
+        FROM amigos a
+        WHERE a.amigo = ? AND a.status = 'pendente'
+    """, (user,))
     
-    # Obter contagem atualizada de mensagens não lidas
-    cursor.execute("""
-        SELECT COUNT(*) FROM mensagens 
-        WHERE destinatario = ? AND lida = 0
-    """, (data['destinatario'],))
-    unread_count = cursor.fetchone()[0]
+    solicitacoes = cursor.fetchall()
     conn.close()
+
+    return render_template('solicitacoes_amizade.html', solicitacoes=solicitacoes)
+
+@app.route('/aprovar_amizade/<int:id>')
+def aprovar_amizade(id):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
     
-    # Envia a mensagem e a atualização da contagem
-    emit('nova_mensagem', {
-        'remetente': data['remetente'],
-        'destinatario': data['destinatario'],
-        'conteudo': data['conteudo'],
-        'horario': data_formatada
-    }, room=f"{data['remetente']}_{data['destinatario']}")
+    try:
+        cursor.execute("""
+            SELECT amigo FROM amigos 
+            WHERE id = ? AND status = 'pendente'
+        """, (id,))
+        
+        resultado = cursor.fetchone()
+        
+        if not resultado or resultado[0] != session['user']:
+            flash('Solicitação não encontrada', 'danger')
+            return redirect(url_for('solicitacoes_amizade'))
+        
+        cursor.execute("""
+            UPDATE amigos 
+            SET status = 'aprovado' 
+            WHERE id = ?
+        """, (id,))
+        
+        conn.commit()
+        flash('Amizade aprovada com sucesso!', 'success')
     
-    emit('nova_mensagem', {
-        'remetente': data['remetente'],
-        'destinatario': data['destinatario'],
-        'conteudo': data['conteudo'],
-        'horario': data_formatada
-    }, room=f"{data['destinatario']}_{data['remetente']}")
+    except sqlite3.Error as e:
+        print(f"Erro ao aprovar amizade: {e}")
+        flash('Erro ao aprovar amizade', 'danger')
     
-    # Atualiza a contagem para o destinatário
-    emit('atualizar_contagem', {
-        'count': unread_count
-    }, room=data['destinatario'])
+    finally:
+        conn.close()
+    
+    return redirect(url_for('solicitacoes_amizade'))
+
+@app.route('/recusar_amizade/<int:id>')
+def recusar_amizade(id):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT amigo FROM amigos 
+            WHERE id = ? AND status = 'pendente'
+        """, (id,))
+        
+        resultado = cursor.fetchone()
+        
+        if not resultado or resultado[0] != session['user']:
+            flash('Solicitação não encontrada', 'danger')
+            return redirect(url_for('solicitacoes_amizade'))
+        
+        cursor.execute("DELETE FROM amigos WHERE id = ?", (id,))
+        
+        conn.commit()
+        flash('Solicitação recusada', 'info')
+    
+    except sqlite3.Error as e:
+        print(f"Erro ao recusar amizade: {e}")
+        flash('Erro ao recusar amizade', 'danger')
+    
+    finally:
+        conn.close()
+    
+    return redirect(url_for('solicitacoes_amizade'))
+
+@app.route('/ver_amigos')
+def ver_amigos():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    conn = sqlite3.connect('database/finflow.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT 
+            CASE
+                WHEN a.solicitante = ? THEN a.amigo
+                ELSE a.solicitante
+            END AS nome_amigo,
+            a.status
+        FROM amigos a
+        WHERE (a.solicitante = ? OR a.amigo = ?)
+        AND a.status = 'aprovado'
+    """, (user, user, user))
+    
+    amigos = cursor.fetchall()
+    conn.close()
+
+    return render_template('ver_amigos.html', amigos=amigos)
+
+@app.route('/remover_amigo/<nome>')
+def remover_amigo(nome):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    conn = sqlite3.connect('database/finflow.db')
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT COUNT(*) FROM loans
+            WHERE (
+                (cliente = ? AND nome = ?) OR 
+                (cliente = ? AND nome = ?)
+            ) AND status IN ('pendente', 'aprovado')
+        """, (user, nome, nome, user))
+        loans_count = cursor.fetchone()[0]
+
+        cursor.execute("""
+            SELECT COUNT(*) FROM solicitacoes
+            WHERE (
+                (solicitante = ? AND emprestador = ?) OR 
+                (solicitante = ? AND emprestador = ?)
+            ) AND status = 'pendente'
+        """, (user, nome, nome, user))
+        solicitacoes_count = cursor.fetchone()[0]
+
+        if loans_count + solicitacoes_count > 0:
+            flash("❌ Você não pode desfazer a amizade enquanto houver empréstimos pendentes ou ativos entre vocês.", "error")
+            return redirect(url_for('ver_amigos'))
+
+        cursor.execute("""
+            DELETE FROM amigos 
+            WHERE (solicitante = ? AND amigo = ?) OR (solicitante = ? AND amigo = ?)
+        """, (user, nome, nome, user))
+        conn.commit()
+
+        flash(f"✅ Amizade com {nome} foi removida com sucesso.", "info")
+    
+    except Exception as e:
+        print(f"Erro ao remover amigo: {e}")
+        flash("Erro ao remover amigo.", "error")
+    
+    finally:
+        conn.close()
+
+    return redirect(url_for('ver_amigos'))
+
+# ==============================================
+# ROTAS DE MENSAGENS E CHAT
+# ==============================================
+
+@app.route('/mensagens/nao-lidas')
+def contar_mensagens_nao_lidas():
+    if 'user' not in session:
+        return jsonify({'count': 0})
+    
+    user = session['user']
+    try:
+        conn = sqlite3.connect('database/finflow.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT COUNT(*) FROM mensagens 
+            WHERE destinatario = ? AND lida = 0
+        """, (user,))
+        
+        count = cursor.fetchone()[0]
+        return jsonify({'count': count})
+        
+    except Exception as e:
+        print(f"Erro ao contar mensagens não lidas: {e}")
+        return jsonify({'count': 0})
+        
+    finally:
+        conn.close()
 
 @app.route('/mensagens')
 def mensagens():
@@ -1345,7 +1695,6 @@ def conversa(destinatario):
         """, (user, destinatario, mensagem, data_formatada, 0))
         conn.commit()
         
-        # Emitir a mensagem via Socket.IO
         socketio.emit('nova_mensagem', {
             'remetente': user,
             'destinatario': destinatario,
@@ -1376,7 +1725,6 @@ def conversa(destinatario):
     conn.commit()
     conn.close()
     
-    # Emitir atualização de contagem
     socketio.emit('atualizar_contagem', {'count': 0}, room=session['user'])
 
     return render_template('conversa.html', mensagens=mensagens, destinatario=destinatario)
@@ -1391,7 +1739,6 @@ def lista_usuarios_para_conversar():
     conn = sqlite3.connect('database/finflow.db')
     cursor = conn.cursor()
     
-    # Agora busca apenas AMIGOS com status aprovado
     cursor.execute("""
         SELECT 
             CASE WHEN solicitante = ? THEN amigo ELSE solicitante END
@@ -1404,162 +1751,70 @@ def lista_usuarios_para_conversar():
 
     return render_template('lista_usuarios.html', usuarios=usuarios)
 
-@app.route('/buscar', methods=['GET', 'POST'])
-def buscar_usuario():
-    if 'user' not in session:
-        return redirect(url_for('login'))
+# ==============================================
+# HANDLERS DE SOCKET.IO
+# ==============================================
 
-    resultados = []
-    if request.method == 'POST':
-        termo = request.form['termo']
-        conn = sqlite3.connect('database/finflow.db')
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT nome FROM usuarios 
-            WHERE nome LIKE ? AND nome != ?
-        """, (f'%{termo}%', session['user']))
-        resultados = [r[0] for r in cursor.fetchall()]
-        conn.close()
+@socketio.on('join_chat')
+def handle_join_chat(data):
+    user = data['user']
+    destinatario = data['destinatario']
+    
+    join_room(f"{user}_{destinatario}")
+    join_room(f"{destinatario}_{user}")
+    
+    print(f"Usuário {user} entrou na conversa com {destinatario}")
 
-    return render_template('buscar.html', resultados=resultados)
+@socketio.on('digitando')
+def handle_digitando(data):
+    emit('usuario_digitando', data, room=f"{data['destinatario']}_{data['remetente']}")
 
-@app.route('/adicionar_amigo/<nome>')
-def adicionar_amigo(nome):
-    if 'user' not in session:
-        return redirect(url_for('login'))
+@socketio.on('parou_digitando')
+def handle_parou_digitando(data):
+    emit('usuario_parou_digitando', data, room=f"{data['destinatario']}_{data['remetente']}")
 
-    solicitante = session['user']
+@socketio.on('enviar_mensagem')
+def handle_enviar_mensagem(data):
     conn = sqlite3.connect('database/finflow.db')
     cursor = conn.cursor()
     
-    try:
-        # Verifica se já existe solicitação entre esses usuários
-        cursor.execute("""
-            SELECT id FROM amigos 
-            WHERE (solicitante = ? AND amigo = ?)
-            OR (solicitante = ? AND amigo = ?)
-        """, (solicitante, nome, nome, solicitante))
-        
-        if cursor.fetchone():
-            flash(f'Você e {nome} já têm uma conexão pendente ou confirmada! 🌟', 'info')
-
-            conn.close()  # Fecha a conexão ANTES do redirect
-            return redirect(url_for('buscar_usuario'))
-        
-        # Cria nova solicitação
-        cursor.execute("""
-            INSERT INTO amigos (solicitante, amigo, status) 
-            VALUES (?, ?, 'pendente')
-        """, (solicitante, nome))
-        
-        conn.commit()
-        flash(f'Solicitação de amizade enviada com para  {nome}!', 'success')
+    hora_brasil = datetime.utcnow() - timedelta(hours=3)
+    data_formatada = hora_brasil.strftime('%d/%m/%Y %H:%M')
     
-    except sqlite3.IntegrityError as e:
-        print(f"Erro de banco de dados: {e}")
-        flash('Erro ao enviar solicitação de amizade', 'danger')
-    
-    finally:
-        conn.close()
-    
-    return redirect(url_for('buscar_usuario'))
-
-@app.route('/solicitacoes_amizade')
-def solicitacoes_amizade():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-
-    user = session['user']
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-    
-    # Busca solicitações pendentes para o usuário atual
     cursor.execute("""
-        SELECT a.id, a.solicitante 
-        FROM amigos a
-        WHERE a.amigo = ? AND a.status = 'pendente'
-    """, (user,))
+        INSERT INTO mensagens (remetente, destinatario, mensagem, data_envio, lida) 
+        VALUES (?, ?, ?, ?, ?)
+    """, (data['remetente'], data['destinatario'], data['conteudo'], data_formatada, 0))
+    conn.commit()
     
-    solicitacoes = cursor.fetchall()
+    cursor.execute("""
+        SELECT COUNT(*) FROM mensagens 
+        WHERE destinatario = ? AND lida = 0
+    """, (data['destinatario'],))
+    unread_count = cursor.fetchone()[0]
     conn.close()
+    
+    emit('nova_mensagem', {
+        'remetente': data['remetente'],
+        'destinatario': data['destinatario'],
+        'conteudo': data['conteudo'],
+        'horario': data_formatada
+    }, room=f"{data['remetente']}_{data['destinatario']}")
+    
+    emit('nova_mensagem', {
+        'remetente': data['remetente'],
+        'destinatario': data['destinatario'],
+        'conteudo': data['conteudo'],
+        'horario': data_formatada
+    }, room=f"{data['destinatario']}_{data['remetente']}")
+    
+    emit('atualizar_contagem', {
+        'count': unread_count
+    }, room=data['destinatario'])
 
-    return render_template('solicitacoes_amizade.html', solicitacoes=solicitacoes)
-
-@app.route('/aprovar_amizade/<int:id>')
-def aprovar_amizade(id):
-    if 'user' not in session:
-        return redirect(url_for('login'))
-
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-    
-    try:
-        # Verifica se a solicitação é para o usuário atual
-        cursor.execute("""
-            SELECT amigo FROM amigos 
-            WHERE id = ? AND status = 'pendente'
-        """, (id,))
-        
-        resultado = cursor.fetchone()
-        
-        if not resultado or resultado[0] != session['user']:
-            flash('Solicitação não encontrada', 'danger')
-            return redirect(url_for('solicitacoes_amizade'))
-        
-        # Aprova a solicitação
-        cursor.execute("""
-            UPDATE amigos 
-            SET status = 'aprovado' 
-            WHERE id = ?
-        """, (id,))
-        
-        conn.commit()
-        flash('Amizade aprovada com sucesso!', 'success')
-    
-    except sqlite3.Error as e:
-        print(f"Erro ao aprovar amizade: {e}")
-        flash('Erro ao aprovar amizade', 'danger')
-    
-    finally:
-        conn.close()
-    
-    return redirect(url_for('solicitacoes_amizade'))
-
-@app.route('/recusar_amizade/<int:id>')
-def recusar_amizade(id):
-    if 'user' not in session:
-        return redirect(url_for('login'))
-
-    conn = sqlite3.connect('database/finflow.db')
-    cursor = conn.cursor()
-    
-    try:
-        # Verifica se a solicitação é para o usuário atual
-        cursor.execute("""
-            SELECT amigo FROM amigos 
-            WHERE id = ? AND status = 'pendente'
-        """, (id,))
-        
-        resultado = cursor.fetchone()
-        
-        if not resultado or resultado[0] != session['user']:
-            flash('Solicitação não encontrada', 'danger')
-            return redirect(url_for('solicitacoes_amizade'))
-        
-        # Remove a solicitação
-        cursor.execute("DELETE FROM amigos WHERE id = ?", (id,))
-        
-        conn.commit()
-        flash('Solicitação recusada', 'info')
-    
-    except sqlite3.Error as e:
-        print(f"Erro ao recusar amizade: {e}")
-        flash('Erro ao recusar amizade', 'danger')
-    
-    finally:
-        conn.close()
-    
-    return redirect(url_for('solicitacoes_amizade'))
+# ==============================================
+# ROTAS DE PERFIL E CONFIGURAÇÕES
+# ==============================================
 
 @app.route('/editar_perfil', methods=['GET', 'POST'])
 def editar_perfil():
@@ -1569,7 +1824,6 @@ def editar_perfil():
     conn = sqlite3.connect('database/finflow.db')
     cursor = conn.cursor()
     
-    # Verifica se o usuário tem empréstimos pendentes ou aprovados em qualquer uma das tabelas
     cursor.execute("""
         SELECT COUNT(*) FROM loans 
         WHERE cliente = ?
@@ -1587,11 +1841,9 @@ def editar_perfil():
     tem_emprestimos_pendentes = (loans_count + solicitacoes_count) > 0
 
     if request.method == 'POST':
-        # Obter dados atuais primeiro
         cursor.execute("SELECT nome, celular, endereco FROM usuarios WHERE nome = ?", (session['user'],))
         dados_atuais = cursor.fetchone()
         
-        # Se não encontrar usuário, redireciona com mensagem de erro
         if not dados_atuais:
             flash('Usuário não encontrado', 'error')
             conn.close()
@@ -1601,11 +1853,9 @@ def editar_perfil():
         novo_celular = request.form.get('celular') or dados_atuais[1] or ''
         novo_endereco = request.form.get('endereco') or dados_atuais[2] or ''
 
-        # Se tentar mudar nome com empréstimos pendentes
         if tem_emprestimos_pendentes and novo_nome != session['user']:
             flash('Você não pode alterar seu nome enquanto tiver empréstimos pendentes', 'error')
             conn.close()
-            # Mantém os valores submetidos exceto o nome
             return render_template('editar_perfil.html',
                 dados=(session['user'], '', novo_celular, novo_endereco),
                 tem_emprestimos_pendentes=tem_emprestimos_pendentes)
@@ -1618,7 +1868,6 @@ def editar_perfil():
             """, (novo_nome, novo_celular, novo_endereco, session['user']))
             conn.commit()
             
-            # Atualiza sessão apenas se o nome mudou
             if novo_nome != session['user']:
                 session['user'] = novo_nome
             
@@ -1631,11 +1880,9 @@ def editar_perfil():
         
         return redirect(url_for('editar_perfil'))
 
-    # GET request
     cursor.execute("SELECT nome, email, celular, endereco FROM usuarios WHERE nome = ?", (session['user'],))
     dados = cursor.fetchone()
     
-    # Se não encontrar usuário, redireciona para login
     if not dados:
         conn.close()
         return redirect(url_for('login'))
@@ -1653,101 +1900,35 @@ def configuracoes_conta():
 
     return render_template('configuracoes_conta.html')
 
-@app.route('/ver_amigos')
-def ver_amigos():
-    if 'user' not in session:
-        return redirect(url_for('login'))
+# ==============================================
+# FUNÇÕES AUXILIARES
+# ==============================================
 
-    user = session['user']
+def verificar_e_adicionar_coluna_observacoes():
     conn = sqlite3.connect('database/finflow.db')
-    conn.row_factory = sqlite3.Row  # 👈 importante!
     cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT 
-            CASE
-                WHEN a.solicitante = ? THEN a.amigo
-                ELSE a.solicitante
-            END AS nome_amigo,
-            a.status
-        FROM amigos a
-        WHERE (a.solicitante = ? OR a.amigo = ?)
-        AND a.status = 'aprovado'
-    """, (user, user, user))
-    
-    amigos = cursor.fetchall()
+    try:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN is_google_auth BOOLEAN DEFAULT 0")
+        conn.commit()
+        print("✅ Coluna 'is_google_auth' adicionada com sucesso.")
+    except:
+        print("ℹ️ Coluna 'is_google_auth' já existe.")
     conn.close()
 
-    return render_template('ver_amigos.html', amigos=amigos)
-
-@app.route('/remover_amigo/<nome>')
-def remover_amigo(nome):
-    if 'user' not in session:
-        return redirect(url_for('login'))
-
-    user = session['user']
+def adicionar_coluna_lida():
     conn = sqlite3.connect('database/finflow.db')
     cursor = conn.cursor()
-
     try:
-        # Verifica se há empréstimos PENDENTES ou ATIVOS entre os dois (ambas direções)
-        cursor.execute("""
-            SELECT COUNT(*) FROM loans
-            WHERE (
-                (cliente = ? AND nome = ?) OR 
-                (cliente = ? AND nome = ?)
-            ) AND status IN ('pendente', 'aprovado')
-        """, (user, nome, nome, user))
-        loans_count = cursor.fetchone()[0]
-
-        # Verifica se há solicitações ainda PENDENTES entre os dois (ambas direções)
-        cursor.execute("""
-            SELECT COUNT(*) FROM solicitacoes
-            WHERE (
-                (solicitante = ? AND emprestador = ?) OR 
-                (solicitante = ? AND emprestador = ?)
-            ) AND status = 'pendente'
-        """, (user, nome, nome, user))
-        solicitacoes_count = cursor.fetchone()[0]
-
-        if loans_count + solicitacoes_count > 0:
-            flash("❌ Você não pode desfazer a amizade enquanto houver empréstimos pendentes ou ativos entre vocês.", "error")
-            return redirect(url_for('ver_amigos'))
-
-        # Remove amizade
-        cursor.execute("""
-            DELETE FROM amigos 
-            WHERE (solicitante = ? AND amigo = ?) OR (solicitante = ? AND amigo = ?)
-        """, (user, nome, nome, user))
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN data_nascimento TEXT;")
         conn.commit()
+        print("✅ Coluna 'data nascimento' adicionada com sucesso")
+    except sqlite3.OperationalError:
+        print("ℹ️ Coluna 'data nascimento' já existe")
+    conn.close()
 
-        flash(f"✅ Amizade com {nome} foi removida com sucesso.", "info")
-    
-    except Exception as e:
-        print(f"Erro ao remover amigo: {e}")
-        flash("Erro ao remover amigo.", "error")
-    
-    finally:
-        conn.close()
-
-    return redirect(url_for('ver_amigos'))
-
-def criar_banco_e_tabelas():
-    create_amigos_table()
-    create_messages_table()
-    create_user_table()
-    create_loans_table()
-    create_solicitacoes_table()
-    verificar_e_adicionar_coluna_status()
-    verificar_e_adicionar_coluna_cliente()
-    verificar_e_adicionar_coluna_renovacoes()
-    verificar_e_adicionar_coluna_observacoes()
-    create_user_status_table()
-    adicionar_coluna_lida()
-    verificar_e_adicionar_colunas_usuario()  # Adicione esta linha
-
-# Chama a função sempre que o app iniciar
-criar_banco_e_tabelas()
+# ==============================================
+# INICIALIZAÇÃO DO APLICATIVO
+# ==============================================
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000)

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personalizar Relatório - RMCred</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<style>
+    :root {
+    --primary: #2a7de1;
+    --secondary: #6c757d;
+    --success: #28a745;
+    --warning: #ffc107;
+    --danger: #dc3545;
+    --light: #f8f9fa;
+    --dark: #343a40;
+    --text-color: var(--dark);
+    --card-bg: white;
+    --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    --border-color: #dcdcdc;
+    --input-bg: #ffffff;
+    --body-bg: #f5f7fa;
+    }
+
+    * {
+    box-sizing: border-box;
+    }
+
+    body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--body-bg);
+    margin: 0;
+    padding: 1rem;
+    color: var(--dark);
+    font-size: clamp(14px, 2vw, 16px);
+    }
+
+    .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1rem;
+    }
+
+    .header {
+    text-align: center;
+    margin-bottom: 2rem;
+    }
+
+    .header h1 {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    }
+
+    .header p {
+    color: var(--secondary);
+    }
+
+    .card {
+    background-color: var(--card-bg);
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: var(--card-shadow);
+    }
+
+    .form-group {
+    margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    }
+
+    .form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--input-bg);
+    font-size: 1rem;
+    }
+
+    .checkbox-container {
+    margin-top: 1rem;
+    }
+
+    .checkbox-container h3 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    }
+
+    .checkbox-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-right: 0.75rem;
+    }
+
+    .checkbox-item label {
+    font-size: 1rem;
+    }
+
+    .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+    }
+
+    .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex: 1 1 45%;
+    text-align: center;
+    text-decoration: none;
+    }
+
+    .btn-primary {
+    background-color: var(--primary);
+    color: white;
+    }
+
+    .btn-primary:hover {
+    background-color: #1e6ec8;
+    transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+    background-color: var(--secondary);
+    color: white;
+    }
+
+    .btn-secondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+    }
+
+    @media (max-width: 600px) {
+    .card {
+        padding: 1.2rem;
+    }
+
+    .btn {
+        flex: 1 1 100%;
+    }
+    }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+    <h1><i class="fas fa-file-pdf"></i> Personalizar Relatório</h1>
+    <p>Selecione as opções desejadas para gerar seu relatório personalizado</p>
+    </div>
+
+    <form class="card" action="/gerar_relatorio_personalizado" method="POST">
+    <div class="form-group">
+        <label for="tipo_emprestimo">Tipo de Relatório:</label>
+        <select id="tipo_emprestimo" name="tipo_emprestimo" required>
+        <option value="todos">Relatório Completo</option>
+        <option value="ativos">Empréstimos Ativos</option>
+        <option value="finalizados">Empréstimos Finalizados</option>
+        <option value="pendentes">Empréstimos Pendentes</option>
+        <option value="vencendo">Empréstimos Vencendo</option>
+        <option value="solicitacoes">Solicitações Pendentes</option>
+        </select>
+    </div>
+
+    <div class="checkbox-container">
+        <h3>Campos a Incluir:</h3>
+        <div class="checkbox-item">
+        <input type="checkbox" id="incluir_cliente" name="incluir_cliente" checked>
+        <label for="incluir_cliente">Nome do Cliente</label>
+        </div>
+        <div class="checkbox-item">
+        <input type="checkbox" id="incluir_valor" name="incluir_valor" checked>
+        <label for="incluir_valor">Valor do Empréstimo</label>
+        </div>
+        <div class="checkbox-item">
+        <input type="checkbox" id="incluir_juros" name="incluir_juros" checked>
+        <label for="incluir_juros">Taxa de Juros</label>
+        </div>
+        <div class="checkbox-item">
+        <input type="checkbox" id="incluir_total" name="incluir_total" checked>
+        <label for="incluir_total">Valor Total</label>
+        </div>
+        <div class="checkbox-item">
+        <input type="checkbox" id="incluir_vencimento" name="incluir_vencimento" checked>
+        <label for="incluir_vencimento">Data de Vencimento</label>
+        </div>
+        <div class="checkbox-item">
+        <input type="checkbox" id="incluir_status" name="incluir_status" checked>
+        <label for="incluir_status">Status</label>
+        </div>
+        <div class="checkbox-item">
+        <input type="checkbox" id="incluir_renovacoes" name="incluir_renovacoes" checked>
+        <label for="incluir_renovacoes">Número de Renovações</label>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button type="submit" class="btn btn-primary">
+        <i class="fas fa-download"></i> Gerar Relatório
+        </button>
+        <a href="/relatorio-opcoes" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+    </form>
+</div>
+</body>
+</html>
+<!-- End of personalizar_relatorio.html -->
+<!-- This template allows users to customize their report by selecting the type of report and the fields they

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opções de Relatório - RMCred</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2a7de1;
+            --primary-dark: #1e6ec8;
+            --secondary: #6c757d;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --text-color: var(--dark);
+            --card-bg: white;
+            --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --border-color: #dcdcdc;
+            --body-bg: #f5f7fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--body-bg);
+            margin: 0;
+            padding: 20px;
+            color: var(--dark);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: var(--secondary);
+            font-size: 18px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .option-card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .option-icon {
+            font-size: 50px;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .option-title {
+            font-size: 22px;
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .option-desc {
+            color: var(--secondary);
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+
+        .option-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+
+        .option-link:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .back-button {
+            display: block;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .btn-back {
+            padding: 12px 30px;
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-back:hover {
+            background-color: #5a6268;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--secondary);
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: var(--danger);
+        }
+
+        .modal-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .form-group input, 
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .modal-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .modal-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        @media (max-width: 768px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .option-card {
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-file-alt"></i> Opções de Relatório</h1>
+            <p>Escolha como deseja visualizar ou receber seus relatórios</p>
+        </div>
+
+        <div class="options-grid">
+            <div class="option-card" onclick="window.location.href='{{ url_for('gerar_pdf') }}'" style="cursor: pointer;">
+        <div class="option-icon">
+            <i class="fas fa-file-download"></i>
+        </div>
+        <h3 class="option-title">Baixar Relatório</h3>
+        <p class="option-desc">Gere e baixe um PDF com seus empréstimos atuais</p>
+        <span class="option-link">Baixar Agora</span> <!-- span aqui, pois o card todo é clicável -->
+    </div>
+
+            <div class="option-card" onclick="openModal()">
+                <div class="option-icon">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <h3 class="option-title">Enviar por E-mail</h3>
+                <p class="option-desc">Receba o relatório diretamente no seu e-mail</p>
+                <a class="option-link">Enviar</a>
+            </div>
+
+            <div class="option-card" onclick="window.location.href='/personalizar_relatorio'">
+                <div class="option-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <h3 class="option-title">Personalizar Relatório</h3>
+                <p class="option-desc">Escolha quais informações deseja incluir</p>
+                <a class="option-link">Personalizar</a>
+            </div>
+        </div>
+
+        <div class="back-button">
+            <a href="/painel" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Voltar ao Painel
+            </a>
+        </div>
+    </div>
+
+    <!-- Modal para envio por e-mail -->
+    <div id="emailModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 class="modal-title">Enviar Relatório por E-mail</h2>
+            
+            <form id="emailForm">
+                <div class="form-group">
+                    <label for="email">E-mail de Destino:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="format">Formato:</label>
+                    <select id="format" name="format">
+                        <option value="pdf">PDF (recomendado)</option>
+                        <option value="csv">CSV (para planilhas)</option>
+                    </select>
+                </div>
+                
+                <button type="button" class="modal-btn" onclick="sendReport()">
+                    <i class="fas fa-paper-plane"></i> Enviar Relatório
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Funções para controlar o modal
+        function openModal() {
+            document.getElementById('emailModal').style.display = 'block';
+        }
+        
+        function closeModal() {
+            document.getElementById('emailModal').style.display = 'none';
+        }
+        
+        // Fechar modal ao clicar fora
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('emailModal')) {
+                closeModal();
+            }
+        }
+        
+        // Função para enviar o relatório por e-mail
+        function sendReport() {
+            const email = document.getElementById('email').value;
+            const format = document.getElementById('format').value;
+            
+            if (!email) {
+                alert('Por favor, insira um e-mail válido');
+                return;
+            }
+            
+            fetch('/enviar-relatorio-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: email, format: format })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Relatório enviado com sucesso para ' + email);
+                    closeModal();
+                } else {
+                    alert('Erro ao enviar: ' + (data.message || 'Tente novamente mais tarde'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ocorreu um erro ao enviar o relatório');
+            });
+        }
+    </script>
+</body>
+</html>
