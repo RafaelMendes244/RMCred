@@ -5,3 +5,4 @@ gunicorn
 python-dotenv
 bcrypt
 reportlab
+eventlet
